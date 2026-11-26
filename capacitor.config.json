@@ -1,0 +1,30 @@
+{
+  "appId": "com.zaheer.dailydiary",
+  "appName": "Daily Diary",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": [
+      "script.google.com",
+      "script.googleusercontent.com",
+      "fonts.googleapis.com",
+      "fonts.gstatic.com",
+      "cdn.jsdelivr.net"
+    ]
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1800,
+      "launchAutoHide": true,
+      "backgroundColor": "#0e2a2f",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "backgroundColor": "#0e2a2f",
+      "overlaysWebView": false,
+      "style": "LIGHT"
+    }
+  }
+}

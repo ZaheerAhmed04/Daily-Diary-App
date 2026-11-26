@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>روزانہ ڈائری</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.6.2/dist/chart.umd.min.js"></script>
+<style>
+:root{--bg:#0e2a2f;--paper:#eef4f1;--ink:#12312f;--mut:#5d7873;--ok:#1f8a63;--warn:#c27a14;--bad:#b24a3b;--gold:#b8892b;--line:#cfe0da}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:"Noto Naskh Arabic",Tahoma,serif;color:var(--ink);padding:16px;display:flex;justify-content:center;line-height:1.8}
+.app{width:100%;max-width:480px}
+.app.stats-active{max-width:1100px}
+h1{color:#f1e7cc;font-weight:700;font-size:28px;margin:4px 0 14px}
+h2{font-size:18px;margin:0 0 6px}
+.card{background:var(--paper);border-radius:14px;padding:16px;margin-bottom:12px}
+label.f{display:block;font-size:14px;color:var(--mut);margin-bottom:2px}
+input,textarea{width:100%;font:16px "Noto Naskh Arabic",Tahoma,serif;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.row{display:flex;gap:10px}.row>div{flex:1}
+.task{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:18px}
+.task:last-child{border:0}
+.box{width:26px;height:26px;border:2px solid var(--mut);border-radius:7px;flex:none;display:grid;place-items:center;color:#fff;font:700 16px system-ui;line-height:1}
+.task.on .box{background:var(--ok);border-color:var(--ok)}
+.task.on .box::after{content:"✓"}
+.pb{padding:8px 0;border-bottom:1px solid var(--line)}
+.pb:last-child{border:0}
+.pn{font-size:18px;margin-bottom:4px}
+.seg{display:flex;border:1px solid var(--mut);border-radius:10px;overflow:hidden}
+.seg span{flex:1;text-align:center;padding:5px 4px;font-size:15px;cursor:pointer;color:var(--mut)}
+.seg span+span{border-right:1px solid var(--mut)}
+.seg span.j.on{background:var(--ok);color:#fff}
+.seg span.a.on{background:var(--warn);color:#fff}
+.seg span.n.on{background:var(--bad);color:#fff}
+.rs{margin-top:6px}
+.sm{display:flex;align-items:center;gap:10px}
+.sm input{max-width:90px;text-align:center}
+button{font:700 17px "Noto Naskh Arabic",Tahoma,serif;border:0;border-radius:10px;padding:10px;width:100%;cursor:pointer;margin-top:8px}
+.p{background:var(--gold);color:#fff}.s{background:var(--ok);color:#fff}.g{background:transparent;color:#f1e7cc;border:1px solid #f1e7cc55}
+#msg{color:#f1e7cc;font-size:15px;min-height:26px;text-align:center;margin:6px 0}
+canvas{width:100%;border-radius:10px;display:none;margin-top:10px}
+details summary{color:#f1e7cc;font-size:15px;cursor:pointer;margin:10px 0}
+[dir=ltr]{direction:ltr;text-align:left}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs button{margin:0;flex:1}
+.tab-active{background:var(--gold)!important;color:#fff!important;border-color:var(--gold)!important}
+#statsView[hidden],#diaryView[hidden],[hidden]{display:none!important}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+.stat-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+.stat-card .label{font-size:14px;color:var(--mut)}
+.stat-card .value{font:700 24px system-ui,sans-serif;color:var(--ink);direction:ltr}
+.stats-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
+.stats-controls label{display:block;color:var(--mut);font-size:14px}
+.stats-controls input,.stats-controls select{width:100%;font:16px "Noto Naskh Arabic",Tahoma,serif;padding:8px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.stats-controls button{margin:0}
+.table-wrap{overflow-x:auto;direction:rtl}
+.stats-table{width:100%;border-collapse:collapse;min-width:760px;background:#fff}
+.stats-table th,.stats-table td{padding:8px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap}
+.stats-table th{background:#e3ede8;color:var(--ink)}
+.person-link{border:0;background:none;color:#176d58;text-decoration:underline;padding:0;margin:0;width:auto;font:inherit;cursor:pointer}
+.state{padding:14px;text-align:center;color:var(--mut)}
+.state.error{color:var(--bad)}
+.state.error{white-space:pre-line;overflow-wrap:anywhere}
+.details-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.details-head button{width:auto;margin:0}
+.history-reason{white-space:normal;min-width:120px;max-width:240px;text-align:right!important}
+.dashboard-shell{--dash-bg:#f4f7f5;--dash-card:#fff;--dash-ink:#173a36;--dash-muted:#68807a;--dash-border:#e0e9e5;--dash-shadow:0 8px 24px rgba(15,43,39,.07);background:var(--dash-bg);border:1px solid #d7e3de;border-radius:20px;padding:clamp(14px,2.5vw,26px);color:var(--dash-ink)}
+.analytics-dark .dashboard-shell{--dash-bg:#102b2d;--dash-card:#183638;--dash-ink:#e8f1ec;--dash-muted:#aac0b8;--dash-border:#31504c;--dash-shadow:0 8px 24px rgba(0,0,0,.2);border-color:#31504c}
+.dashboard-header{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
+.dashboard-title{margin:0;font-size:26px}.dashboard-title small{display:block;font-size:14px;font-weight:400;color:var(--dash-muted)}
+.dash-actions{display:flex;gap:8px;flex-wrap:wrap}.dash-actions button{width:auto;margin:0;padding:8px 12px;font-size:14px}
+.dashboard-panel,.chart-card,.rank-panel{background:var(--dash-card);border:1px solid var(--dash-border);border-radius:16px;box-shadow:var(--dash-shadow);padding:16px;margin-bottom:14px}
+.stats-controls{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stats-controls input,.stats-controls select{border-color:var(--dash-border);background:var(--dash-bg);color:var(--dash-ink)}
+.stats-grid{grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;margin:14px 0 18px}
+.stat-card{background:var(--dash-card);border:1px solid var(--dash-border);border-radius:16px;box-shadow:var(--dash-shadow);padding:16px;text-align:right;position:relative;overflow:hidden}
+.stat-card:before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:4px;background:var(--ok)}
+.stat-card .label{font-size:13px;color:var(--dash-muted)}.stat-card .value{font:700 25px system-ui,sans-serif;color:var(--dash-ink);direction:ltr;text-align:right;margin-top:4px}
+.analytics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.chart-card{margin:0;min-width:0}.chart-card h3,.rank-panel h3{font-size:16px;margin:0 0 10px;color:var(--dash-ink)}
+.chart-wrap{position:relative;height:290px;max-height:42vh;min-height:230px}.chart-card.wide{grid-column:1/-1}
+.chart-wrap canvas{display:block;width:100%;height:100%;margin:0;border-radius:0}
+.dashboard-shell,#statsView,.analytics-grid>*,.rank-layout>*,.dashboard-panel,.table-wrap{min-width:0;max-width:100%}
+.table-wrap{-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x}
+.stats-controls>div{min-width:0}.stats-controls input,.stats-controls select{min-width:0}
+.stats-table{table-layout:auto}
+.rank-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,1.3fr);gap:14px}
+.rank-highlight{font-size:18px;font-weight:700;color:var(--ok);padding:10px 0}
+.stats-table{background:var(--dash-card);color:var(--dash-ink);border-radius:12px;overflow:hidden}.stats-table th{background:color-mix(in srgb,var(--dash-bg) 82%,var(--ok) 18%);color:var(--dash-ink)}
+.stats-table td{white-space:nowrap}.stats-table td.history-reason{white-space:normal}
+.person-link{color:var(--ok)}.person-link:hover{color:var(--gold)}
+.stats-state-card{background:var(--dash-card);border:1px solid var(--dash-border);border-radius:12px;margin-top:12px}
+.stats-footnote{font-size:12px;color:var(--dash-muted);margin:8px 0 0}
+.print-only{display:none}
+@media(max-width:760px){.analytics-grid{grid-template-columns:1fr}.rank-layout{grid-template-columns:1fr}.chart-card.wide{grid-column:auto}.chart-wrap{height:250px;max-height:none}}
+@media(max-width:560px){body.stats-page{padding:10px}.app.stats-active{max-width:100%}.dashboard-shell{padding:12px;border-radius:14px}.dashboard-header{align-items:flex-start;gap:8px;margin-bottom:12px}.dashboard-title{font-size:21px;line-height:1.45}.dashboard-title small{font-size:13px}.dash-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:7px}.dash-actions button{width:100%;min-width:0;min-height:42px;padding:7px 6px;white-space:normal;line-height:1.3}.dashboard-panel,.chart-card,.rank-panel{padding:12px;border-radius:13px}.stats-controls{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.stats-controls label{font-size:12px}.stats-controls input,.stats-controls select{font-size:14px;padding:8px 6px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat-card{padding:11px 9px}.stat-card .label{font-size:12px;line-height:1.5}.stat-card .value{font-size:18px;line-height:1.4;overflow-wrap:anywhere}.chart-wrap{height:230px;min-height:210px;max-height:none}.stats-table{min-width:720px}.details-head{align-items:flex-start}.details-head h2{font-size:16px}}
+@media(max-width:380px){body.stats-page{padding:8px}.dashboard-shell{padding:9px}.stats-controls{grid-template-columns:minmax(0,1fr)}.stats-controls label{font-size:13px}.stats-controls input,.stats-controls select{font-size:15px;padding:8px}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.stat-card{padding:10px 7px}.stat-card .value{font-size:16px}.chart-wrap{height:215px;min-height:200px}.dashboard-title{font-size:19px}.dash-actions button{font-size:13px}}
+@media print{body{background:#fff;padding:0;display:block}.app,.app.stats-active{width:100%;max-width:none}.tabs,#diaryView,.dash-actions,.stats-controls,.person-link{display:none!important}#statsView[hidden]{display:block!important}.dashboard-shell,.dashboard-panel,.chart-card,.rank-panel,.stat-card{box-shadow:none;border-color:#bbb;background:#fff;color:#111;break-inside:avoid}.dashboard-shell{border:0}.analytics-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.chart-wrap{height:220px}.table-wrap{overflow:visible}.stats-table{min-width:0;font-size:10px}.stats-table th,.stats-table td{white-space:normal;padding:4px}.print-only{display:block}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+<h1>روزانہ کی ڈائری</h1>
+
+<div class="tabs" role="tablist" aria-label="صفحہ منتخب کریں">
+  <button type="button" id="diaryTab" class="s tab-active" role="tab" aria-selected="true">ڈائری</button>
+  <button type="button" id="statsTab" class="g" role="tab" aria-selected="false">اعداد و شمار</button>
+</div>
+
+<section id="diaryView">
+
+<div class="card">
+  <div class="row">
+    <div><label class="f">نام</label><input id="name" placeholder="اپنا نام لکھیں"></div>
+    <div style="max-width:90px"><label class="f">دن</label><input id="day" type="number" min="1" dir="ltr"></div>
+  </div>
+  <label class="f" style="margin-top:8px">تاریخ</label><input id="date" type="date" dir="ltr">
+  <label class="f" style="margin-top:8px">پہلے دن کی تاریخ (اختیاری)</label><input id="start" type="date" dir="ltr">
+</div>
+
+<div class="card" id="tasks"></div>
+
+<div class="card"><h2>نماز</h2><div id="prayers"></div></div>
+
+<div class="card">
+  <h2>سوشل میڈیا</h2>
+  <label class="f">آج کتنی دیر استعمال کیا؟</label>
+  <div class="sm">
+    <input id="sh" type="number" min="0" value="0" dir="ltr"><span>گھنٹے</span>
+    <input id="smin" type="number" min="0" max="59" value="0" dir="ltr"><span>منٹ</span>
+  </div>
+  <div class="f" style="font-size:13px;color:var(--mut)">اگر بالکل استعمال نہیں کیا تو دونوں 0 رہنے دیں۔</div>
+</div>
+
+<div class="card"><label class="f">نوٹ (اختیاری)</label><textarea id="note" rows="2"></textarea></div>
+
+<button class="p" id="mk">تصویر بنائیں / شیئر کریں</button>
+<button class="s" id="sv">گوگل شیٹ میں محفوظ کریں</button>
+<div id="msg"></div>
+<canvas id="cv"></canvas>
+
+<button class="g" id="rs">نیا دن (ری سیٹ)</button>
+</section>
+
+<section id="statsView" hidden>
+  <div class="dashboard-shell">
+    <header class="dashboard-header">
+      <h2 class="dashboard-title">Analytics Dashboard <small>روزانہ ڈائری کی کارکردگی کا خلاصہ</small></h2>
+      <div class="dash-actions"><button type="button" class="g" id="themeToggle">ڈارک موڈ</button><button type="button" class="g" id="exportStats">CSV برآمد</button><button type="button" class="g" id="printStats">پرنٹ</button><button type="button" class="s" id="refreshStats">تازہ کریں</button></div>
+    </header>
+    <div class="dashboard-panel">
+    <div class="stats-controls">
+      <div><label for="datePreset">مدت</label><select id="datePreset">
+        <option value="today">آج</option><option value="7">گزشتہ 7 دن</option><option value="30">گزشتہ 30 دن</option><option value="month">اس ماہ</option><option value="3months">گزشتہ 3 ماہ</option><option value="all" selected>تمام وقت</option><option value="custom">مخصوص تاریخیں</option>
+      </select></div>
+      <div id="customFromWrap" hidden><label for="customFrom">سے</label><input id="customFrom" type="date" dir="ltr"></div>
+      <div id="customToWrap" hidden><label for="customTo">تک</label><input id="customTo" type="date" dir="ltr"></div>
+      <div><label for="personFilter">شخص</label><select id="personFilter"><option value="">تمام افراد</option></select></div>
+      <div><label for="searchPerson">نام تلاش کریں</label><input id="searchPerson" type="search" placeholder="نام لکھیں"></div>
+      <div><label for="sortStats">ترتیب</label><select id="sortStats"><option value="name">نام</option><option value="days">دنوں کی تعداد</option><option value="recent">تازہ ترین اندراج</option></select></div>
+      <div><label for="trendGranularity">رجحان</label><select id="trendGranularity"><option value="day">روزانہ</option><option value="week">ہفتہ وار</option><option value="month">ماہانہ</option></select></div>
+      <div><label for="compareOne">موازنہ 1</label><select id="compareOne"><option value="">فرد منتخب کریں</option></select></div>
+      <div><label for="compareTwo">موازنہ 2</label><select id="compareTwo"><option value="">فرد منتخب کریں</option></select></div>
+    </div>
+    </div>
+    <div class="stats-grid" id="overallStats"></div>
+    <div class="rank-layout">
+      <div class="rank-panel"><h3>بہترین کارکردگی</h3><div id="topPerformer" class="rank-highlight">—</div><p class="stats-footnote">قرآن، لیکچر اور جماعت کی دستیاب فیصد کا اوسط</p></div>
+      <div class="rank-panel"><h3>افراد کی درجہ بندی</h3><div class="table-wrap" id="rankingArea"></div></div>
+    </div>
+    <div class="analytics-grid">
+      <article class="chart-card"><h3>نماز کی مجموعی تقسیم</h3><div class="chart-wrap"><canvas id="prayerDonut"></canvas></div></article>
+      <article class="chart-card"><h3>ہر نماز کی کارکردگی</h3><div class="chart-wrap"><canvas id="prayerBars"></canvas></div></article>
+      <article class="chart-card wide"><h3>قرآن، لیکچر اور جماعت کا رجحان</h3><div class="chart-wrap"><canvas id="performanceTrend"></canvas></div></article>
+      <article class="chart-card"><h3>قرآن اور لیکچر تکمیل</h3><div class="chart-wrap"><canvas id="completionDonut"></canvas></div></article>
+      <article class="chart-card"><h3>روزانہ سوشل میڈیا استعمال</h3><div class="chart-wrap"><canvas id="socialTrend"></canvas></div></article>
+      <article class="chart-card wide"><h3>فرد کے لحاظ سے قرآن اور لیکچر</h3><div class="chart-wrap"><canvas id="personBars"></canvas></div></article>
+      <article class="chart-card wide"><h3>دو افراد کا موازنہ</h3><div class="chart-wrap"><canvas id="compareChart"></canvas></div></article>
+    </div>
+    <div id="statsState" class="state stats-state-card">تازہ ترین اعداد و شمار حاصل کرنے کے لیے تازہ کریں۔</div>
+    <div id="statsTableArea" hidden></div>
+    <div id="personDetails" hidden></div>
+    <div class="print-only">یہ رپورٹ منتخب فلٹرز اور Google Sheets سے موصولہ ریکارڈز پر مبنی ہے۔</div>
+  </div>
+</section>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwwUf1ZaGFRyuHh8k8EG2HQTSeV8s282K7Qu64qWsSBFNuGZBv-vysONkd-Yoqo9q674g/exec";
+const PR=["فجر","ظہر","عصر","مغرب","عشاء"];
+const T=[
+ {k:"quran",t:"قرآن: کم از کم ایک رکوع، ترجمہ اور تفسیر کے ساتھ"},
+ {k:"lecture",t:"لیکچر"}
+];
+const mk=()=>({quran:0,lecture:0,p:PR.map(()=>({s:"n",r:""}))});
+let S=mk();
+let saving=false;
+const ls={get(k,d){try{return localStorage.getItem(k)||d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const LBL={j:"جماعت کے ساتھ",a:"اکیلے",n:"نہیں پڑھی"};
+
+function render(){
+  const box=$("tasks");box.innerHTML="";
+  T.forEach(x=>{
+    const d=document.createElement("div");d.className="task"+(S[x.k]?" on":"");
+    d.innerHTML='<div class="box"></div><div>'+x.t+'</div>';
+    d.onclick=()=>{S[x.k]=S[x.k]?0:1;render()};
+    box.appendChild(d);
+  });
+  const pb=$("prayers");pb.innerHTML="";
+  PR.forEach((n,i)=>{
+    const p=S.p[i],w=document.createElement("div");w.className="pb";
+    w.innerHTML='<div class="pn">'+n+'</div>';
+    const sg=document.createElement("div");sg.className="seg";
+    ["j","a","n"].forEach(k=>{
+      const s=document.createElement("span");s.className=k+(p.s===k?" on":"");s.textContent=LBL[k];
+      s.onclick=()=>{p.s=k;if(k==="j")p.r="";render()};sg.appendChild(s);
+    });
+    w.appendChild(sg);
+    if(p.s!=="j"){
+      const r=document.createElement("input");r.className="rs";r.placeholder=p.s==="a"?"اکیلے پڑھنے کی وجہ لکھیں (ضروری)":"نماز نہ پڑھنے کی وجہ لکھیں (ضروری)";r.value=p.r;
+      r.oninput=()=>{p.r=r.value};w.appendChild(r);
+    }
+    pb.appendChild(w);
+  });
+}
+
+function init(){
+  $("name").value=ls.get("name","");
+  $("start").value=ls.get("start","");
+  $("date").value=new Date().toISOString().slice(0,10);
+  if(ls.get("analyticsTheme","")==="dark")$("app").classList.add("analytics-dark");
+  $("themeToggle").textContent=$("app").classList.contains("analytics-dark")?"لائٹ موڈ":"ڈارک موڈ";
+  calcDay();render();
+}
+function calcDay(){
+  const s=$("start").value,d=$("date").value;
+  if(s&&d){const n=Math.round((new Date(d)-new Date(s))/864e5)+1;if(n>0)$("day").value=n}
+}
+$("date").onchange=calcDay;
+$("start").onchange=()=>{ls.set("start",$("start").value);calcDay()};
+$("name").oninput=()=>ls.set("name",$("name").value);
+
+function socialMin(){return (parseInt($("sh").value)||0)*60+(parseInt($("smin").value)||0)}
+function fmt(m){const h=Math.floor(m/60),n=m%60;return (h?h+" گھنٹہ":"")+(h&&n?" ":"")+(n?n+" منٹ":"")}
+function msg(t){$("msg").textContent=t}
+function check(){
+  for(let i=0;i<5;i++){const q=S.p[i];if(q.s!=="j"&&!q.r.trim()){msg(PR[i]+(q.s==="a"?" اکیلے پڑھی ہے":" نہیں پڑھی")+"، براہ کرم وجہ لکھیں۔");return false}}
+  return true;
+}
+
+const PR_EN=["Fajr","Zuhr","Asr","Maghrib","Isha"];
+let allRecords=[],statsLoaded=false,statsLoading=false,refreshQueued=false,selectedPerson="";
+function keyOf(v){return String(v??"").toLowerCase().replace(/[^a-z0-9]/g,"")}
+function field(o,names){if(!o||typeof o!=="object")return "";const keys=Object.keys(o),wanted=names.map(keyOf);for(const k of keys)if(wanted.includes(keyOf(k)))return o[k];return ""}
+function normalizeRecord(raw){
+  const rawP=field(raw,["p","prayers"]);let parsedP=rawP;
+  if(typeof parsedP==="string"){try{parsedP=JSON.parse(parsedP)}catch(e){parsedP=[]}}
+  const p=PR_EN.map((en,i)=>{
+    let item=Array.isArray(parsedP)?parsedP[i]:parsedP&&typeof parsedP==="object"?(parsedP[en]||parsedP[PR[i]]||parsedP["p"+(i+1)]):null;
+    if(typeof item==="string"){try{item=JSON.parse(item)}catch(e){item={s:item,r:""}}}
+    item=item&&typeof item==="object"?item:{};
+    const s=field(item,["s","status"])||field(raw,[en,en+" status",en+" s","p"+(i+1),"p"+(i+1)+" status"]);
+    const r=field(item,["r","reason"])||field(raw,[en+" reason",en+" r","p"+(i+1)+" reason","reason "+en]);
+    return {s:normalizeStatus(s),r:String(r??"").trim()};
+  });
+  const dateRaw=field(raw,["date","diary date"]);
+  const date=String(dateRaw??"").trim();
+  return {
+    name:String(field(raw,["name","person","person name"])??"").trim(),
+    date:date?date.slice(0,10):"",day:field(raw,["day","total day"]),
+    quran:normalizeFlag(field(raw,["quran","quran complete","quran completion"])),
+    lecture:normalizeFlag(field(raw,["lecture","lecture complete","lecture completion"])),
+    p,
+    social:toNumber(field(raw,["social","social min","social minutes","social media","social media min","social media minutes"])),
+    note:String(field(raw,["note","notes"])??"").trim()
+  };
+}
+function normalizeStatus(v){
+  const s=String(v??"").trim().toLowerCase();if(["j","jamaat","jamaat ke sath","جماعت","جماعت کے ساتھ"].includes(s))return "j";
+  if(["a","akele","alone","اکیلے"].includes(s))return "a";
+  if(["n","nahi","not prayed","نہیں","نہیں پڑھی"].includes(s))return "n";return "";
+}
+function normalizeFlag(v){if(v===true||v===1)return 1;if(v===false||v===0||v==null||v==="")return v===""?null:0;const s=String(v).trim().toLowerCase();if(["1","true","yes","y","✅","✔","ہاں"].includes(s))return 1;if(["0","false","no","n","❌","✗","نہیں"].includes(s))return 0;return null}
+function toNumber(v){if(v===null||v===undefined||String(v).trim()==="")return null;const n=Number(v);return Number.isFinite(n)?n:null}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function ymd(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
+function rangeForFilter(){
+  const preset=$("datePreset").value,now=new Date(),today=ymd(now);let from="",to=today;
+  if(preset==="today")from=today;
+  else if(preset==="7"||preset==="30"){const start=new Date(now);start.setDate(start.getDate()-Number(preset)+1);from=ymd(start)}
+  else if(preset==="month")from=ymd(new Date(now.getFullYear(),now.getMonth(),1));
+  else if(preset==="3months"){const start=new Date(now);start.setMonth(start.getMonth()-3);from=ymd(start)}
+  else if(preset==="custom"){from=$("customFrom").value;to=$("customTo").value;if(!from||!to||from>to)return {invalid:true}}
+  else to="9999-12-31";
+  return {from,to};
+}
+function dateFilteredRecords(){const range=rangeForFilter();return {range,records:range.invalid?[]:allRecords.filter(r=>r.date>=range.from&&r.date<=range.to)}}
+function filteredRecords(){
+  const base=dateFilteredRecords(),person=$("personFilter").value,search=$("searchPerson").value.trim().toLocaleLowerCase();
+  if(base.range.invalid)return base;
+  return {range:base.range,records:base.records.filter(r=>(!person||r.name===person)&&(!search||r.name.toLocaleLowerCase().includes(search)))};
+}
+function pct(n,d){return d?((100*n/d).toFixed(1).replace(/\.0$/,""))+"%":"—"}
+function average(values){const a=values.filter(v=>v!==null&&Number.isFinite(v));return a.length?a.reduce((x,y)=>x+y,0)/a.length:null}
+function minutesText(m){if(m===null||m===undefined)return "—";const n=Math.round(m);return Math.floor(n/60)+" گھنٹے "+(n%60)+" منٹ"}
+function personNames(records){return [...new Set(records.map(r=>r.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b))}
+function prayerCounts(records){const out={j:0,a:0,n:0,total:0};records.forEach(r=>r.p.forEach(p=>{if(p.s){out[p.s]++;out.total++}}));return out}
+function overallCards(records){
+  const q=records.filter(r=>r.quran!==null),l=records.filter(r=>r.lecture!==null),pc=prayerCounts(records),social=average(records.map(r=>r.social));
+  const cards=[
+    ["کل رجسٹرڈ افراد",personNames(records).length],
+    ["کل ڈائری اندراجات",records.length],
+    ["اوسط قرآن تکمیل",pct(q.reduce((n,r)=>n+r.quran,0),q.length)],
+    ["اوسط لیکچر تکمیل",pct(l.reduce((n,r)=>n+r.lecture,0),l.length)],
+    ["نماز جماعت",pct(pc.j,pc.total)],
+    ["نماز اکیلے",pct(pc.a,pc.total)],
+    ["نماز نہیں",pct(pc.n,pc.total)],
+    ["اوسط سوشل میڈیا",minutesText(social)]
+  ];
+  $("overallStats").innerHTML=cards.map(([label,value])=>'<div class="stat-card"><div class="label">'+esc(label)+'</div><div class="value">'+esc(value)+'</div></div>').join("");
+}
+function personSummary(records){
+  const q=records.filter(r=>r.quran!==null),l=records.filter(r=>r.lecture!==null),pc=prayerCounts(records);
+  const recent=records.reduce((d,r)=>r.date>d?r.date:d,"");return {days:records.length,recent,quran:pct(q.reduce((n,r)=>n+r.quran,0),q.length),lecture:pct(l.reduce((n,r)=>n+r.lecture,0),l.length),jamaat:pct(pc.j,pc.total),akele:pct(pc.a,pc.total),nahi:pct(pc.n,pc.total),social:average(records.map(r=>r.social)),pc};
+}
+function updatePersonOptions(){
+  const select=$("personFilter"),current=select.value,names=personNames(allRecords);
+  select.innerHTML='<option value="">تمام افراد</option>'+names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("");
+  if(names.includes(current))select.value=current;
+  [["compareOne","فرد منتخب کریں"],["compareTwo","فرد منتخب کریں"]].forEach(([id,placeholder])=>{const s=$(id),v=s.value;s.innerHTML='<option value="">'+placeholder+'</option>'+names.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join("");if(names.includes(v))s.value=v});
+}
+function uniqueDiaryRecords(records){
+  const unique=new Map();records.forEach((r,i)=>{const key=r.name&&r.date?(r.name.toLocaleLowerCase()+"|"+r.date):"row|"+i;unique.set(key,r)});return [...unique.values()];
+}
+function renderTable(records){
+  const groups=new Map();records.forEach(r=>{if(!r.name)return;if(!groups.has(r.name))groups.set(r.name,[]);groups.get(r.name).push(r)});
+  const rows=[...groups].map(([name,rs])=>({name,rs,summary:personSummary(rs)}));const sort=$("sortStats").value;
+  rows.sort((a,b)=>sort==="days"?b.summary.days-a.summary.days:sort==="recent"?b.summary.recent.localeCompare(a.summary.recent):a.name.localeCompare(b.name));
+  $("statsTableArea").innerHTML='<div class="table-wrap"><table class="stats-table"><thead><tr><th>نام</th><th>کل دن</th><th>قرآن %</th><th>لیکچر %</th><th>جماعت %</th><th>اکیلے %</th><th>نہیں %</th><th>اوسط سوشل میڈیا</th></tr></thead><tbody>'+rows.map(x=>'<tr><td><button class="person-link" type="button" data-person="'+esc(x.name)+'">'+esc(x.name)+'</button></td><td>'+x.summary.days+'</td><td>'+x.summary.quran+'</td><td>'+x.summary.lecture+'</td><td>'+x.summary.jamaat+'</td><td>'+x.summary.akele+'</td><td>'+x.summary.nahi+'</td><td>'+minutesText(x.summary.social)+'</td></tr>').join("")+'</tbody></table></div>';
+  $("statsTableArea").querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>{selectedPerson=b.dataset.person;$("personFilter").value=selectedPerson;renderStats()});
+}
+function statusLabel(s){return s==="j"?"جماعت":s==="a"?"اکیلے":s==="n"?"نہیں":"—"}
+function renderPersonDetails(records,name){
+  const rs=records.filter(r=>r.name===name).sort((a,b)=>b.date.localeCompare(a.date)),sum=personSummary(rs),pc=sum.pc;
+  const byPrayer=PR.map((label,i)=>{const c={j:0,a:0,n:0,total:0};rs.forEach(r=>{const s=r.p[i].s;if(s){c[s]++;c.total++}});return '<tr><td>'+label+'</td><td>'+pct(c.j,c.total)+' ('+c.j+'/'+c.total+')</td><td>'+pct(c.a,c.total)+' ('+c.a+'/'+c.total+')</td><td>'+pct(c.n,c.total)+' ('+c.n+'/'+c.total+')</td></tr>'}).join("");
+  const history=rs.map(r=>'<tr><td>'+esc(r.date||"—")+'</td><td>'+statusFlag(r.quran)+'</td><td>'+statusFlag(r.lecture)+'</td>'+r.p.map(p=>'<td>'+esc(statusLabel(p.s))+(p.r?'<div class="history-reason">'+esc(p.r)+'</div>':'')+'</td>').join("")+'<td>'+minutesText(r.social)+'</td><td class="history-reason">'+esc(r.note||"—")+'</td></tr>').join("");
+  $("personDetails").innerHTML='<div class="details-head"><h2>'+esc(name)+' — تفصیلی رپورٹ</h2><button type="button" class="g" id="backStats">واپس فہرست</button></div><div class="stats-grid">'+[
+    ["کل ڈائری اندراجات",sum.days],["قرآن تکمیل",sum.quran],["لیکچر تکمیل",sum.lecture],["جماعت",pct(pc.j,pc.total)],["اکیلے",pct(pc.a,pc.total)],["نہیں",pct(pc.n,pc.total)],["اوسط سوشل میڈیا",minutesText(sum.social)]
+  ].map(([l,v])=>'<div class="stat-card"><div class="label">'+esc(l)+'</div><div class="value">'+esc(v)+'</div></div>').join("")+'</div><h2>ہر نماز کی کارکردگی</h2><div class="table-wrap"><table class="stats-table"><thead><tr><th>نماز</th><th>جماعت</th><th>اکیلے</th><th>نہیں</th></tr></thead><tbody>'+byPrayer+'</tbody></table></div><h2 style="margin-top:16px">تاریخ وار ڈائری اور وجوہات</h2><div class="table-wrap"><table class="stats-table"><thead><tr><th>تاریخ</th><th>قرآن</th><th>لیکچر</th>'+PR.map(n=>'<th>'+n+'</th>').join("")+'<th>سوشل میڈیا</th><th>نوٹ</th></tr></thead><tbody>'+history+'</tbody></table></div>';
+  $("backStats").onclick=()=>{selectedPerson="";$("personFilter").value="";renderStats()};
+}
+function statusFlag(v){return v===1?"✓":v===0?"✗":"—"}
+const chartInstances=Object.create(null);
+function pctValue(n,d){return d?100*n/d:null}
+function summaryScore(records){
+  const q=records.filter(r=>r.quran!==null),l=records.filter(r=>r.lecture!==null),p=prayerCounts(records),parts=[];
+  if(q.length)parts.push(100*q.reduce((a,r)=>a+r.quran,0)/q.length);
+  if(l.length)parts.push(100*l.reduce((a,r)=>a+r.lecture,0)/l.length);
+  if(p.total)parts.push(100*p.j/p.total);
+  return parts.length?parts.reduce((a,b)=>a+b,0)/parts.length:null;
+}
+function renderRanking(records){
+  const groups=new Map();records.forEach(r=>{if(!r.name)return;if(!groups.has(r.name))groups.set(r.name,[]);groups.get(r.name).push(r)});
+  const ranked=[...groups].map(([name,rs])=>({name,rs,score:summaryScore(rs)})).filter(x=>x.score!==null).sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name));
+  $("topPerformer").textContent=ranked.length?ranked[0].name+" · "+ranked[0].score.toFixed(1)+"%":"—";
+  $("rankingArea").innerHTML=ranked.length?'<table class="stats-table"><thead><tr><th>#</th><th>نام</th><th>اندراجات</th><th>اسکور</th></tr></thead><tbody>'+ranked.map((x,i)=>'<tr><td>'+(i+1)+'</td><td><button class="person-link" type="button" data-rank-person="'+esc(x.name)+'">'+esc(x.name)+'</button></td><td>'+x.rs.length+'</td><td>'+x.score.toFixed(1)+'%</td></tr>').join("")+'</tbody></table>':'<div class="state">ابھی درجہ بندی کے لیے کافی ڈیٹا نہیں۔</div>';
+  $("rankingArea").querySelectorAll("[data-rank-person]").forEach(b=>b.onclick=()=>selectPerson(b.dataset.rankPerson));
+}
+function selectPerson(name){selectedPerson=name;$("personFilter").value=name;$("searchPerson").value="";renderStats()}
+function bucketKey(date,granularity){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return "";
+  if(granularity==="month")return date.slice(0,7);
+  if(granularity==="week"){
+    const d=new Date(date+"T00:00:00Z"),day=(d.getUTCDay()+6)%7;d.setUTCDate(d.getUTCDate()-day);
+    return d.toISOString().slice(0,10);
+  }
+  return date;
+}
+function trendBuckets(records,granularity){
+  const map=new Map();records.forEach(r=>{const key=bucketKey(r.date,granularity);if(!key)return;if(!map.has(key))map.set(key,{q:0,qn:0,l:0,ln:0,j:0,pn:0,s:0,sn:0});const b=map.get(key);
+    if(r.quran!==null){b.q+=r.quran;b.qn++}if(r.lecture!==null){b.l+=r.lecture;b.ln++}r.p.forEach(p=>{if(p.s){b.pn++;if(p.s==="j")b.j++}});if(r.social!==null){b.s+=r.social;b.sn++}
+  });
+  return [...map].sort((a,b)=>a[0].localeCompare(b[0])).map(([key,b])=>({key,q:pctValue(b.q,b.qn),l:pctValue(b.l,b.ln),j:pctValue(b.j,b.pn),s:b.sn?b.s/b.sn:null}));
+}
+function chartColors(){const dark=$("app").classList.contains("analytics-dark");return dark?{ink:"#e8f1ec",muted:"#aac0b8",grid:"rgba(170,192,184,.14)",green:"#50c89b",gold:"#e0b95e",red:"#e47c70",blue:"#78aef7",fill:"rgba(80,200,155,.18)"}:{ink:"#173a36",muted:"#68807a",grid:"rgba(70,100,90,.12)",green:"#1f8a63",gold:"#c49a45",red:"#bd6255",blue:"#5489c7",fill:"rgba(31,138,99,.14)"}}
+function drawChart(id,type,data,extra={}){
+  if(typeof Chart==="undefined")return;
+  const palette=chartColors(),base={responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{position:"bottom",labels:{color:palette.muted,usePointStyle:true,padding:14}},tooltip:{enabled:true}},layout:{padding:4}};
+  const options={...base,...extra,plugins:{...base.plugins,...(extra.plugins||{})}};
+  if(chartInstances[id]){chartInstances[id].data=data;chartInstances[id].options=options;chartInstances[id].update("none")}
+  else chartInstances[id]=new Chart($(id),{type,data,options});
+}
+function renderCharts(records){
+  if(typeof Chart==="undefined"){$("statsState").hidden=false;$("statsState").className="state error";$("statsState").textContent="چارٹس لوڈ نہیں ہوئے۔ انٹرنیٹ دستیاب ہونے پر صفحہ دوبارہ کھولیں۔";return}
+  const c=chartColors(),pc=prayerCounts(records),counts=[pc.j,pc.a,pc.n],names=["جماعت","اکیلے","نہیں"];
+  drawChart("prayerDonut","doughnut",{labels:names,datasets:[{data:counts,backgroundColor:[c.green,c.gold,c.red],borderColor:"transparent",hoverOffset:7}]},{cutout:"66%"});
+  const prayerData=PR.map((_,i)=>{const count={j:0,a:0,n:0,total:0};records.forEach(r=>{const s=r.p[i].s;if(s){count[s]++;count.total++}});return count});
+  drawChart("prayerBars","bar",{labels:PR,datasets:[{label:"جماعت",data:prayerData.map(x=>pctValue(x.j,x.total)),backgroundColor:c.green},{label:"اکیلے",data:prayerData.map(x=>pctValue(x.a,x.total)),backgroundColor:c.gold},{label:"نہیں",data:prayerData.map(x=>pctValue(x.n,x.total)),backgroundColor:c.red}]},{scales:{x:{stacked:true,ticks:{color:c.muted},grid:{display:false}},y:{stacked:true,min:0,max:100,ticks:{color:c.muted,callback:v=>v+"%"},grid:{color:c.grid}}}});
+  const gran=$("trendGranularity").value,buckets=trendBuckets(records,gran),labels=buckets.map(x=>x.key);
+  const lineOptions={interaction:{mode:"index",intersect:false},scales:{x:{ticks:{color:c.muted,maxTicksLimit:12},grid:{display:false}},y:{min:0,max:100,ticks:{color:c.muted,callback:v=>v+"%"},grid:{color:c.grid}}}};
+  drawChart("performanceTrend","line",{labels,datasets:[{label:"قرآن",data:buckets.map(x=>x.q),borderColor:c.green,backgroundColor:c.green,tension:.32,spanGaps:true},{label:"لیکچر",data:buckets.map(x=>x.l),borderColor:c.blue,backgroundColor:c.blue,tension:.32,spanGaps:true},{label:"جماعت",data:buckets.map(x=>x.j),borderColor:c.gold,backgroundColor:c.gold,tension:.32,spanGaps:true}]},lineOptions);
+  const qs=records.filter(r=>r.quran!==null),ls=records.filter(r=>r.lecture!==null),qPct=pctValue(qs.reduce((n,r)=>n+r.quran,0),qs.length),lPct=pctValue(ls.reduce((n,r)=>n+r.lecture,0),ls.length);
+  drawChart("completionDonut","doughnut",{labels:["قرآن مکمل","قرآن باقی","لیکچر مکمل","لیکچر باقی"],datasets:[{data:[qPct||0,100-(qPct||0),lPct||0,100-(lPct||0)],backgroundColor:[c.green,c.grid,c.blue,"rgba(110,130,125,.22)"],borderColor:"transparent",borderWidth:0}]},{cutout:"58%",plugins:{legend:{position:"bottom",labels:{color:c.muted,usePointStyle:true,padding:12}},tooltip:{callbacks:{label:item=>item.label+": "+Number(item.raw).toFixed(1)+"%"}}}});
+  drawChart("socialTrend","line",{labels,datasets:[{label:"اوسط منٹ",data:buckets.map(x=>x.s),borderColor:c.blue,backgroundColor:c.fill,fill:true,tension:.3,spanGaps:true,pointRadius:2}]},{interaction:{mode:"index",intersect:false},scales:{x:{ticks:{color:c.muted,maxTicksLimit:12},grid:{display:false}},y:{beginAtZero:true,ticks:{color:c.muted,callback:v=>v+" منٹ"},grid:{color:c.grid}}}});
+  const groups=new Map();records.forEach(r=>{if(!r.name)return;if(!groups.has(r.name))groups.set(r.name,[]);groups.get(r.name).push(r)});
+  const byPerson=[...groups].map(([name,rs])=>({name,rs})).sort((a,b)=>(summaryScore(b.rs)||0)-(summaryScore(a.rs)||0)).slice(0,16);
+  drawChart("personBars","bar",{labels:byPerson.map(x=>x.name),datasets:[{label:"قرآن %",data:byPerson.map(x=>{const a=x.rs.filter(r=>r.quran!==null);return pctValue(a.reduce((n,r)=>n+r.quran,0),a.length)}),backgroundColor:c.green},{label:"لیکچر %",data:byPerson.map(x=>{const a=x.rs.filter(r=>r.lecture!==null);return pctValue(a.reduce((n,r)=>n+r.lecture,0),a.length)}),backgroundColor:c.blue}]},{scales:{x:{ticks:{color:c.muted,maxTicksLimit:12},grid:{display:false}},y:{beginAtZero:true,max:100,ticks:{color:c.muted,callback:v=>v+"%"},grid:{color:c.grid}}}});
+  const dateRows=dateFilteredRecords().records,n1=$("compareOne").value,n2=$("compareTwo").value,cmp=[n1,n2].filter(Boolean);
+  const metrics=cmp.map(name=>{const rs=dateRows.filter(r=>r.name===name),q=rs.filter(r=>r.quran!==null),l=rs.filter(r=>r.lecture!==null),p=prayerCounts(rs);return {name,q:pctValue(q.reduce((a,r)=>a+r.quran,0),q.length),l:pctValue(l.reduce((a,r)=>a+r.lecture,0),l.length),j:pctValue(p.j,p.total)}});
+  drawChart("compareChart","bar",{labels:["قرآن","لیکچر","جماعت"],datasets:metrics.map((x,i)=>({label:x.name,data:[x.q,x.l,x.j],backgroundColor:i?c.gold:c.green}))},{scales:{x:{ticks:{color:c.muted},grid:{display:false}},y:{beginAtZero:true,max:100,ticks:{color:c.muted,callback:v=>v+"%"},grid:{color:c.grid}}}});
+}
+function renderStats(){
+  if(!statsLoaded)return;const result=filteredRecords();overallCards(result.records);renderRanking(result.records);renderCharts(result.records);
+  const state=$("statsState");state.className="state";
+  if(result.range.invalid){state.hidden=false;state.textContent="مخصوص مدت کے لیے آغاز اور اختتام کی تاریخ منتخب کریں۔";$("statsTableArea").hidden=true;$("personDetails").hidden=true;return}
+  if(!allRecords.length){state.hidden=false;state.textContent="ابھی کوئی ڈائری ریکارڈ موجود نہیں۔";$("statsTableArea").hidden=true;$("personDetails").hidden=true;return}
+  if(!result.records.length){state.hidden=false;state.textContent="منتخب مدت یا فرد کے لیے کوئی ریکارڈ نہیں ملا۔";$("statsTableArea").hidden=true;$("personDetails").hidden=true;return}
+  state.hidden=true;
+  if(selectedPerson&&$("personFilter").value===selectedPerson){$("statsTableArea").hidden=true;$("personDetails").hidden=false;renderPersonDetails(result.records,selectedPerson)}
+  else{selectedPerson="";$("personDetails").hidden=true;$("statsTableArea").hidden=false;renderTable(result.records)}
+}
+function fetchStatsJsonp(endpoint){
+  return new Promise((resolve,reject)=>{
+    const callback="diaryStats_"+Date.now()+"_"+Math.random().toString(36).slice(2,10),script=document.createElement("script");
+    let settled=false;const finish=(err,value)=>{if(settled)return;settled=true;clearTimeout(timer);delete window[callback];script.remove();err?reject(err):resolve(value)};
+    window[callback]=value=>finish(null,value);script.onerror=()=>finish(new Error("JSONP request failed"));
+    const timer=setTimeout(()=>finish(new Error("JSONP timed out")),15000);
+    endpoint.searchParams.set("callback",callback);script.src=endpoint.toString();script.async=true;document.head.appendChild(script);
+  });
+}
+async function loadStats(silent=false){
+  if(statsLoading){if(silent)refreshQueued=true;return false}const url=SCRIPT_URL;
+  statsLoading=true;const button=$("refreshStats");button.disabled=true;if(!silent){$("statsState").hidden=false;$("statsState").className="state";$("statsState").textContent="ریکارڈ حاصل ہو رہے ہیں..."}
+  try{
+    const endpoint=new URL(url);endpoint.searchParams.set("action","stats");endpoint.searchParams.set("_",Date.now());
+    let payload;
+    try{
+      const response=await fetch(endpoint.toString(),{method:"GET",cache:"no-store",headers:{Accept:"application/json"}});
+      if(!response.ok)throw new Error("HTTP "+response.status);
+      payload=await response.json();
+    }catch(corsOrJsonError){payload=await fetchStatsJsonp(endpoint)}
+    if(payload&&payload.ok===false)throw new Error(payload.error||"Apps Script error");
+    const rows=Array.isArray(payload)?payload:payload&&Array.isArray(payload.records)?payload.records:payload&&Array.isArray(payload.data)?payload.data:payload&&Array.isArray(payload.rows)?payload.rows:null;
+    if(!rows)throw new Error("JSON response mein records array nahi mili");
+    allRecords=uniqueDiaryRecords(rows.map(normalizeRecord).filter(r=>r.name||r.date));statsLoaded=true;updatePersonOptions();renderStats();
+    if(!allRecords.length){$("statsState").hidden=false;$("statsState").className="state";$("statsState").textContent="Sheet1 میں ابھی کوئی ڈائری ریکارڈ نہیں۔"}
+    return true;
+  }catch(e){const detail=e&&e.message?String(e.message):"Unknown error";$("statsState").hidden=false;$("statsState").className="state error";$("statsState").textContent="ریکارڈ حاصل نہیں ہوئے۔ Apps Script کے GET endpoint کو چیک کریں۔\nتکنیکی وجہ: "+detail;$("statsTableArea").hidden=true;$("personDetails").hidden=true;return false}
+  finally{statsLoading=false;button.disabled=false;if(refreshQueued){refreshQueued=false;loadStats(true)}}
+}
+function sameDiaryRecord(a,b){
+  if(a.name!==b.name||a.date!==b.date||String(a.day??"")!==String(b.day??"")||a.quran!==b.quran||a.lecture!==b.lecture||a.social!==b.social||a.note!==b.note)return false;
+  return a.p.every((p,i)=>p.s===b.p[i].s&&p.r===b.p[i].r);
+}
+async function confirmSavedRecord(payload){
+  const expected=normalizeRecord(payload);
+  for(let attempt=0;attempt<4;attempt++){
+    while(statsLoading)await new Promise(resolve=>setTimeout(resolve,100));
+    if(await loadStats(true)&&allRecords.some(row=>sameDiaryRecord(row,expected)))return true;
+    if(attempt<3)await new Promise(resolve=>setTimeout(resolve,600));
+  }
+  return false;
+}
+function showTab(tab){const isStats=tab==="stats";$("diaryView").hidden=isStats;$("statsView").hidden=!isStats;document.body.classList.toggle("stats-page",isStats);$("app").classList.toggle("stats-active",isStats);$("diaryTab").classList.toggle("tab-active",!isStats);$("statsTab").classList.toggle("tab-active",isStats);$("diaryTab").setAttribute("aria-selected",String(!isStats));$("statsTab").setAttribute("aria-selected",String(isStats));if(isStats&&!statsLoaded)loadStats()}
+$("diaryTab").onclick=()=>showTab("diary");$("statsTab").onclick=()=>showTab("stats");$("refreshStats").onclick=()=>loadStats();
+$("datePreset").onchange=()=>{const custom=$("datePreset").value==="custom";$("customFromWrap").hidden=!custom;$("customToWrap").hidden=!custom;renderStats()};
+$("customFrom").onchange=renderStats;$("customTo").onchange=renderStats;$("sortStats").onchange=renderStats;
+
+$("searchPerson").oninput=()=>{selectedPerson="";renderStats()};
+$("trendGranularity").onchange=renderStats;$("compareOne").onchange=renderStats;$("compareTwo").onchange=renderStats;
+$("personFilter").onchange=()=>{selectedPerson=$("personFilter").value;renderStats()};
+$("themeToggle").onclick=()=>{const dark=$("app").classList.toggle("analytics-dark");ls.set("analyticsTheme",dark?"dark":"light");$("themeToggle").textContent=dark?"لائٹ موڈ":"ڈارک موڈ";renderStats()};
+$("printStats").onclick=()=>window.print();
+function csvCell(value){return '"'+String(value??"").replace(/"/g,'""')+'"'}
+function exportStatsCsv(){
+  const rows=filteredRecords().records,headers=["Name","Date","Day","Quran","Lecture",...PR_EN.flatMap(p=>[p+" Status",p+" Reason"]),"Social Min","Note"];
+  const lines=[headers,...rows.map(r=>[r.name,r.date,r.day,r.quran===null?"":r.quran,r.lecture===null?"":r.lecture,...r.p.flatMap(p=>[p.s,p.r]),r.social===null?"":r.social,r.note])].map(row=>row.map(csvCell).join(","));
+  const blob=new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="diary-analytics.csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+$("exportStats").onclick=exportStatsCsv;
+
+async function draw(){
+  try{await document.fonts.load("700 40px 'Noto Naskh Arabic'")}catch(e){}
+  const F="'Noto Naskh Arabic',Tahoma,serif";
+  const cv=$("cv"),W=1080,R=W-110,L=110;
+  const pH=S.p.map(p=>p.s!=="j"?150:100);
+  const note=$("note").value.trim();
+  const H=520+T.length*110+90+pH.reduce((a,b)=>a+b,0)+130+(note?170:0)+70;
+  cv.width=W;cv.height=H;const c=cv.getContext("2d");
+  c.direction="rtl";c.textBaseline="alphabetic";
+  c.fillStyle="#0e2a2f";c.fillRect(0,0,W,H);
+  c.fillStyle="#eef4f1";rr(c,40,40,W-80,H-80,36);c.fill();
+  c.fillStyle="#b8892b";c.fillRect(R-90,110,90,6);
+  c.textAlign="right";c.fillStyle="#12312f";c.font="700 100px "+F;
+  c.fillText("دن "+($("day").value||"-"),R,250);
+  c.font="40px "+F;c.fillStyle="#5d7873";
+  const dt=$("date").value?new Date($("date").value).toLocaleDateString("ur-PK",{day:"numeric",month:"long",year:"numeric"}):"";
+  c.fillText($("name").value||"",R,325);c.fillText(dt,R,385);
+  let y=440;
+  const line=()=>{c.strokeStyle="#cfe0da";c.lineWidth=2;c.beginPath();c.moveTo(L,y);c.lineTo(R,y);c.stroke()};
+  T.forEach(x=>{
+    line();c.textAlign="right";c.fillStyle="#12312f";c.font="38px "+F;
+    c.fillText(x.t,R,y+68);
+    c.textAlign="left";c.font="54px system-ui,sans-serif";c.fillText(S[x.k]?"✅":"❌",L,y+70);
+    y+=110;
+  });
+  line();c.textAlign="right";c.fillStyle="#b8892b";c.font="700 40px "+F;c.fillText("نماز",R,y+68);y+=90;
+  PR.forEach((n,i)=>{
+    const p=S.p[i];line();
+    c.textAlign="right";c.fillStyle="#12312f";c.font="38px "+F;c.fillText(n,R,y+66);
+    const col=p.s==="j"?"#1f8a63":p.s==="a"?"#c27a14":"#b24a3b";
+    c.textAlign="left";c.fillStyle=col;c.font="700 36px "+F;
+    c.fillText(LBL[p.s]+(p.s==="j"?" ✅":p.s==="a"?" ⚠️":" ❌"),L,y+66);
+    if(p.s!=="j"){
+      c.textAlign="right";c.fillStyle="#5d7873";c.font="30px "+F;
+      let t="وجہ: "+p.r;while(c.measureText(t).width>R-L&&t.length>5)t=t.slice(0,-2);
+      c.fillText(t,R,y+120);
+    }
+    y+=pH[i];
+  });
+  line();
+  const m=socialMin();
+  c.textAlign="right";c.fillStyle="#12312f";c.font="38px "+F;c.fillText("سوشل میڈیا",R,y+78);
+  c.textAlign="left";c.fillStyle=m===0?"#1f8a63":"#c27a14";c.font="700 36px "+F;
+  c.fillText(m===0?"استعمال نہیں کیا ✅":fmt(m)+" ⏱️",L,y+78);
+  y+=130;
+  if(note){
+    c.textAlign="right";c.fillStyle="#12312f";c.font="34px "+F;
+    wrap(c,note,R,y+50,R-L,56);
+  }
+  cv.style.display="block";return cv;
+}
+function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+function wrap(c,t,x,y,mw,lh){let l="",n=0;t.split(" ").forEach(w=>{const q=l?l+" "+w:w;if(c.measureText(q).width>mw&&l){c.fillText(l,x,y);y+=lh;l=w}else l=q});c.fillText(l,x,y)}
+
+$("mk").onclick=async()=>{
+  msg("");if(!check())return;
+  const cv=await draw();
+  cv.toBlob(async b=>{
+    const f=new File([b],"diary-day-"+$("day").value+".png",{type:"image/png"});
+    try{
+      if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"دن "+$("day").value});return}
+    }catch(e){if(e.name==="AbortError")return}
+    const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=f.name;a.click();
+    msg("تصویر ڈاؤن لوڈ ہو گئی۔");
+  },"image/png");
+};
+
+$("sv").onclick=async()=>{
+  if(saving)return;
+  msg("");const url=SCRIPT_URL;
+  if(!$("name").value.trim()){msg("نام لکھیں۔");return}
+  if(!$("date").value){msg("تاریخ منتخب کریں۔");return}
+  if(!check())return;
+  const hours=Number($("sh").value)||0,minutes=Number($("smin").value)||0;
+  if(!Number.isInteger(hours)||hours<0||!Number.isInteger(minutes)||minutes<0||minutes>59){msg("سوشل میڈیا کے گھنٹے اور منٹ درست درج کریں۔");return}
+  const code={j:"Jamaat",a:"Akele",n:"Nahi"};
+  const d={name:$("name").value.trim(),date:$("date").value,day:$("day").value?Number($("day").value):"",
+    quran:S.quran,lecture:S.lecture,
+    p:S.p.map(p=>({s:code[p.s],r:p.r.trim()})),
+    social:(hours*60)+minutes,note:$("note").value.trim()};
+  saving=true;$("sv").disabled=true;const original=$("sv").textContent;$("sv").textContent="تصویر بنا کر بھیجا جا رہا ہے...";msg("تصویر تیار ہو رہی ہے...");
+  try{
+    await draw();
+    msg("درخواست بھیجی جا رہی ہے...");
+    await fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(d)});
+    msg("اندراج کی تصدیق ہو رہی ہے...");
+    const confirmed=await confirmSavedRecord(d);
+    msg(confirmed?"گوگل شیٹ میں محفوظ ہو گیا ✅":"درخواست بھیج دی گئی، مگر تازہ ریکارڈ شیٹ سے تصدیق نہیں ہو سکا۔");
+  }catch(e){msg("درخواست نہیں بھیجی جا سکی۔ انٹرنیٹ یا Apps Script لنک چیک کریں۔")}
+  finally{saving=false;$("sv").disabled=false;$("sv").textContent=original}
+};
+
+$("rs").onclick=()=>{S=mk();$("note").value="";$("sh").value=0;$("smin").value=0;$("cv").style.display="none";
+  $("date").value=new Date().toISOString().slice(0,10);calcDay();render();msg("")};
+init();
+</script>
+</body>
+</html>
