@@ -58,8 +58,8 @@ This invokes the verified local Gradle distribution directly, bypassing only the
 
 The shared diary image includes a QR code and download URL. Netlify publishes
 the current APK at `https://dailydairyapp.netlify.app/daily-diary.apk` from
-`downloads/daily-diary.apk`; Android's Capacitor assets stay in `www`, so the
-APK is not embedded inside itself.
+`www/daily-diary.apk`. Android's asset packaging excludes `.apk` files, so the
+downloadable APK is not embedded inside itself.
 
 Create a release key once only if the release keystore does not already exist.
 Never replace an existing release key. Securely back up
@@ -90,7 +90,7 @@ $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
 $env:JAVA_HOME = "$env:LOCALAPPDATA\Programs\Temurin\jdk-21.0.13.1+2"
 npm run android:publish-apk
-git add android/app/build.gradle downloads/daily-diary.apk
+git add android/app/build.gradle www/daily-diary.apk
 git commit -m "Publish Daily Diary APK update"
 git push
 ```

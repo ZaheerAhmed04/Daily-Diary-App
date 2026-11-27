@@ -5,8 +5,7 @@ const { spawnSync } = require("node:child_process");
 const root = path.join(__dirname, "..");
 const androidRoot = path.join(root, "android");
 const releaseApk = path.join(androidRoot, "app", "build", "outputs", "apk", "release", "app-release.apk");
-const targetDirectory = path.join(root, "downloads");
-const targetApk = path.join(targetDirectory, "daily-diary.apk");
+const targetApk = path.join(root, "www", "daily-diary.apk");
 const signingProperties = path.join(androidRoot, "keystore.properties");
 const hasEnvironmentSigning = [
   process.env.DAILY_DIARY_KEYSTORE,
@@ -52,6 +51,5 @@ if (verification.status !== 0) {
   throw new Error("Release APK signature verification failed; APK was not published.");
 }
 
-fs.mkdirSync(targetDirectory, { recursive: true });
 fs.copyFileSync(releaseApk, targetApk);
-console.log("Published signed APK to downloads/daily-diary.apk");
+console.log("Published signed APK to www/daily-diary.apk");

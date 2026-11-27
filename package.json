@@ -10,8 +10,7 @@
     "android:build:debug": "cd android && gradlew.bat assembleDebug",
     "android:build:release": "cd android && gradlew.bat assembleRelease",
     "android:publish-apk": "npm run android:sync && npm run android:build:release && node scripts/copy-release-apk.js",
-    "assets:generate-app-qr": "node scripts/generate-app-qr.js",
-    "netlify:build": "node scripts/build-netlify.js"
+    "assets:generate-app-qr": "node scripts/generate-app-qr.js"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",
