@@ -540,7 +540,7 @@ $("mk").onclick=async()=>{
   cv.toBlob(async b=>{
     const f=new File([b],"diary-day-"+$("day").value+".png",{type:"image/png"});
     try{
-      if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"دن "+$("day").value});return}
+      if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"دن "+$("day").value,text:"https://dailydairyapp.netlify.app/"});return}
     }catch(e){if(e.name==="AbortError")return}
     const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=f.name;a.click();
     msg("تصویر ڈاؤن لوڈ ہو گئی۔");
