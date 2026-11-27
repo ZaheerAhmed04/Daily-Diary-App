@@ -138,6 +138,7 @@ details summary{color:#f1e7cc;font-size:15px;cursor:pointer;margin:10px 0}
 <button class="s" id="sv">گوگل شیٹ میں محفوظ کریں</button>
 <div id="msg"></div>
 <canvas id="cv"></canvas>
+<img id="appDownloadQr" src="./assets/app-download-qr.png" alt="" hidden>
 
 <button class="g" id="rs">نیا دن (ری سیٹ)</button>
 </section>
@@ -188,6 +189,7 @@ details summary{color:#f1e7cc;font-size:15px;cursor:pointer;margin:10px 0}
 <script>
 const $=id=>document.getElementById(id);
 const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwwUf1ZaGFRyuHh8k8EG2HQTSeV8s282K7Qu64qWsSBFNuGZBv-vysONkd-Yoqo9q674g/exec";
+const APP_DOWNLOAD_URL="https://dailydairyapp.netlify.app/daily-diary.apk";
 const PR=["فجر","ظہر","عصر","مغرب","عشاء"];
 const T=[
  {k:"quran",t:"قرآن: کم از کم ایک رکوع، ترجمہ اور تفسیر کے ساتھ"},
@@ -486,8 +488,15 @@ async function draw(){
   const cv=$("cv"),W=1080,R=W-110,L=110;
   const pH=S.p.map(p=>p.s!=="j"?150:100);
   const note=$("note").value.trim();
-  const H=520+T.length*110+90+pH.reduce((a,b)=>a+b,0)+130+(note?170:0)+70;
-  cv.width=W;cv.height=H;const c=cv.getContext("2d");
+  const qr=$("appDownloadQr");
+  if(!qr.complete)await new Promise((resolve,reject)=>{qr.onload=resolve;qr.onerror=reject});
+  if(!qr.naturalWidth)throw new Error("App download QR code is unavailable");
+  cv.width=W;
+  const measure=cv.getContext("2d");measure.font="34px "+F;
+  const noteLines=note?wrappedLineCount(measure,note,R-L):0;
+  const footerHeight=240;
+  const H=520+T.length*110+90+pH.reduce((a,b)=>a+b,0)+130+(note?Math.max(170,noteLines*56+56):0)+footerHeight+70;
+  cv.height=H;const c=cv.getContext("2d");
   c.direction="rtl";c.textBaseline="alphabetic";
   c.fillStyle="#0e2a2f";c.fillRect(0,0,W,H);
   c.fillStyle="#eef4f1";rr(c,40,40,W-80,H-80,36);c.fill();
@@ -529,10 +538,25 @@ async function draw(){
     c.textAlign="right";c.fillStyle="#12312f";c.font="34px "+F;
     wrap(c,note,R,y+50,R-L,56);
   }
+  const footerTop=H-footerHeight-40,qrSize=164;
+  c.strokeStyle="#cfe0da";c.lineWidth=2;c.beginPath();c.moveTo(L,footerTop);c.lineTo(R,footerTop);c.stroke();
+  rr(c,L,footerTop+32,184,184,18);c.fillStyle="#fff";c.fill();
+  c.drawImage(qr,L+10,footerTop+42,qrSize,qrSize);
+  const panelLeft=L+210,panelWidth=R-panelLeft;
+  c.textAlign="right";c.fillStyle="#12312f";c.font="700 40px "+F;
+  c.fillText("ڈیلی ڈائری ایپ انسٹال کریں",R,footerTop+74);
+  c.fillStyle="#5d7873";c.font="28px "+F;
+  c.fillText("QR اسکین کریں یا لنک کھولیں",R,footerTop+116);
+  rr(c,panelLeft,footerTop+137,panelWidth,62,14);c.fillStyle="#b8892b";c.fill();
+  c.textAlign="center";c.fillStyle="#fff";c.font="700 28px "+F;
+  c.fillText("Android APK ڈاؤن لوڈ کریں",panelLeft+panelWidth/2,footerTop+178);
+  c.direction="ltr";c.textAlign="left";c.fillStyle="#5d7873";c.font="20px system-ui,sans-serif";
+  c.fillText("dailydairyapp.netlify.app/daily-diary.apk",panelLeft,footerTop+222);
   cv.style.display="block";return cv;
 }
 function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
 function wrap(c,t,x,y,mw,lh){let l="",n=0;t.split(" ").forEach(w=>{const q=l?l+" "+w:w;if(c.measureText(q).width>mw&&l){c.fillText(l,x,y);y+=lh;l=w}else l=q});c.fillText(l,x,y)}
+function wrappedLineCount(c,t,mw){let l="",n=0;t.split(" ").forEach(w=>{const q=l?l+" "+w:w;if(c.measureText(q).width>mw&&l){n++;l=w}else l=q});return n+(l?1:0)}
 
 $("mk").onclick=async()=>{
   msg("");if(!check())return;
@@ -540,7 +564,7 @@ $("mk").onclick=async()=>{
   cv.toBlob(async b=>{
     const f=new File([b],"diary-day-"+$("day").value+".png",{type:"image/png"});
     try{
-      if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"دن "+$("day").value,text:"https://dailydairyapp.netlify.app/"});return}
+      if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"دن "+$("day").value,text:"Daily Diary app download: "+APP_DOWNLOAD_URL});return}
     }catch(e){if(e.name==="AbortError")return}
     const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=f.name;a.click();
     msg("تصویر ڈاؤن لوڈ ہو گئی۔");

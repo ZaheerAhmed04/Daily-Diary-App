@@ -4,6 +4,7 @@ android/.gradle/
 android/local.properties
 android/**/build/
 android/.idea/
+dist/
 *.jks
 *.keystore
 keystore.properties

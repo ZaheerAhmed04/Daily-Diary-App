@@ -68,7 +68,7 @@
             });
             await share.share({
               title: `Daily Diary - ${day}`,
-              text: "https://dailydairyapp.netlify.app/",
+              text: "Daily Diary app download: https://dailydairyapp.netlify.app/daily-diary.apk",
               files: [saved.uri],
               dialogTitle: "Share diary image"
             });

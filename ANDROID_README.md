@@ -6,7 +6,7 @@ This Capacitor wrapper packages the existing `daily-diary-urdu.html` without cha
 
 - Node.js 22 or newer and npm
 - Android Studio with Android SDK Platform 36 and Build Tools 36.1.0
-- JDK 21 or 23 (JDK 23 is installed on the current workstation)
+- JDK 21 (the Capacitor Android plugins require a Java 21 toolchain)
 - An Android phone with USB debugging enabled, or an Android Studio emulator
 
 ## Open and run
@@ -16,7 +16,7 @@ From PowerShell in this project folder:
 ```powershell
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
-$env:JAVA_HOME = 'C:\Program Files\Java\jdk-23'
+$env:JAVA_HOME = "$env:LOCALAPPDATA\Programs\Temurin\jdk-21.0.13.1+2"
 npm install
 npm run android:sync
 npm run android:open
@@ -54,29 +54,52 @@ Expand-Archive $zip -DestinationPath 'D:\Gradle' -Force
 
 This invokes the verified local Gradle distribution directly, bypassing only the Wrapper's blocked download. Gradle still needs access to Google's and Maven Central's Android build dependencies. If the browser download is also blocked, allow the official Gradle distribution host through your firewall/proxy or ask your network administrator for an approved Gradle mirror.
 
-## Build a signed release APK
+## Build and publish a signed APK
 
-Create and securely back up a signing key once. Keep the keystore and passwords private; the repository ignores `.jks` and `.keystore` files.
+The shared diary image includes a QR code and download URL. Netlify publishes
+the current APK at `https://dailydairyapp.netlify.app/daily-diary.apk` from
+`downloads/daily-diary.apk`; Android's Capacitor assets stay in `www`, so the
+APK is not embedded inside itself.
+
+Create a release key once only if the release keystore does not already exist.
+Never replace an existing release key. Securely back up
+`android/daily-diary-release.jks` and `android/keystore.properties`. Both are
+ignored by Git. Never commit or share them. Android requires the same key for
+all future APK updates.
 
 ```powershell
-$env:JAVA_HOME = 'C:\Program Files\Java\jdk-23'
-& "$env:JAVA_HOME\bin\keytool.exe" -genkeypair -v -keystore .\daily-diary-release.jks -alias daily-diary -keyalg RSA -keysize 2048 -validity 10000
+$env:JAVA_HOME = "$env:LOCALAPPDATA\Programs\Temurin\jdk-21.0.13.1+2"
+& "$env:JAVA_HOME\bin\keytool.exe" -genkeypair -v -keystore .\android\daily-diary-release.jks -alias daily-diary -keyalg RSA -keysize 2048 -validity 10000
 ```
 
-For each signed release build, set the following variables in the same PowerShell session, then build:
+Create the ignored `android/keystore.properties` file with the values used when
+creating the key:
+
+```properties
+storeFile=daily-diary-release.jks
+storePassword=your-keystore-password
+keyAlias=daily-diary
+keyPassword=your-key-password
+```
+
+For each update, increase `versionCode` in `android/app/build.gradle`, update
+`versionName`, then build and replace the published APK:
 
 ```powershell
 $env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
 $env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
-$env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
-$env:DAILY_DIARY_KEYSTORE = (Resolve-Path .\daily-diary-release.jks).Path
-$env:DAILY_DIARY_STORE_PASSWORD = Read-Host 'Keystore password'
-$env:DAILY_DIARY_KEY_ALIAS = 'daily-diary'
-$env:DAILY_DIARY_KEY_PASSWORD = Read-Host 'Key password'
-npm run android:build:release
+$env:JAVA_HOME = "$env:LOCALAPPDATA\Programs\Temurin\jdk-21.0.13.1+2"
+npm run android:publish-apk
+git add android/app/build.gradle downloads/daily-diary.apk
+git commit -m "Publish Daily Diary APK update"
+git push
 ```
 
-The signed APK is written to `android/app/build/outputs/apk/release/app-release.apk`. If signing variables are not set, Gradle can produce only an unsigned release APK; it will reject a partially configured signing environment.
+Netlify deploys the replacement APK to the same URL after the GitHub push.
+Recipients must download it and confirm Android's install/update prompt;
+Android does not silently install APK updates from a website. The first
+release-signed APK cannot update an already installed debug build, so that
+debug build must be uninstalled once before installing the release APK.
 
 ## Updating the web app
 

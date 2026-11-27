@@ -1,9 +1,14 @@
 apply plugin: 'com.android.application'
 
-def releaseStoreFile = System.getenv('DAILY_DIARY_KEYSTORE')
-def releaseStorePassword = System.getenv('DAILY_DIARY_STORE_PASSWORD')
-def releaseKeyAlias = System.getenv('DAILY_DIARY_KEY_ALIAS')
-def releaseKeyPassword = System.getenv('DAILY_DIARY_KEY_PASSWORD')
+def signingProperties = new Properties()
+def signingPropertiesFile = rootProject.file('keystore.properties')
+if (signingPropertiesFile.exists()) {
+    signingPropertiesFile.withInputStream { signingProperties.load(it) }
+}
+def releaseStoreFile = System.getenv('DAILY_DIARY_KEYSTORE') ?: signingProperties.getProperty('storeFile')
+def releaseStorePassword = System.getenv('DAILY_DIARY_STORE_PASSWORD') ?: signingProperties.getProperty('storePassword')
+def releaseKeyAlias = System.getenv('DAILY_DIARY_KEY_ALIAS') ?: signingProperties.getProperty('keyAlias')
+def releaseKeyPassword = System.getenv('DAILY_DIARY_KEY_PASSWORD') ?: signingProperties.getProperty('keyPassword')
 def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].every { it != null && !it.trim().isEmpty() }
 def hasPartialReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword].any { it != null && !it.trim().isEmpty() }
 if (hasPartialReleaseSigning && !hasReleaseSigning) {
@@ -17,8 +22,8 @@ android {
         applicationId "com.zaheer.dailydiary"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 2
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -29,7 +34,7 @@ android {
     if (hasReleaseSigning) {
         signingConfigs {
             release {
-                storeFile file(releaseStoreFile)
+                storeFile rootProject.file(releaseStoreFile)
                 storePassword releaseStorePassword
                 keyAlias releaseKeyAlias
                 keyPassword releaseKeyPassword
