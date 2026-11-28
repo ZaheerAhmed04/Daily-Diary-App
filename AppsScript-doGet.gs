@@ -1,24 +1,24 @@
 /**
  * Add this doGet and its helpers to the existing Apps Script project.
- * Keep the existing doPost(e) unchanged. This reads Sheet1 and returns only
- * the diary fields used by the dashboard as JSON.
+ * Keep the existing doPost(e) unchanged. This reads Sheet1 and Sheet2, then
+ * returns combined diary records for the dashboard as JSON.
  */
 function doGet(e) {
   try {
     var book = SpreadsheetApp.getActiveSpreadsheet();
     if (!book) throw new Error("Spreadsheet is not bound to this Apps Script project.");
 
-    var sheet = book.getSheetByName("Sheet1");
-    if (!sheet) throw new Error("Sheet1 was not found.");
-
-    var values = sheet.getDataRange().getValues();
-    if (!values.length) return diaryOutput_({ ok: true, records: [] }, e);
-
-    var headers = values.shift().map(diaryHeaderKey_);
     var timezone = book.getSpreadsheetTimeZone();
-    var records = values.filter(function (row) {
-      return row.some(function (value) { return value !== "" && value !== null; });
-    }).map(function (row) {
+    var records = [];
+    ["Sheet1", "Sheet2"].forEach(function (sheetName) {
+      var sheet = book.getSheetByName(sheetName);
+      if (!sheet) return;
+      var values = sheet.getDataRange().getValues();
+      if (values.length <= 1) return;
+      var headers = values.shift().map(diaryHeaderKey_);
+      var sheetRecords = values.filter(function (row) {
+        return row.some(function (value) { return value !== "" && value !== null; });
+      }).map(function (row) {
       var storedP = diaryCell_(row, headers, ["p", "prayers"]);
       if (typeof storedP === "string") {
         try { storedP = JSON.parse(storedP); } catch (ignore) { storedP = null; }
@@ -43,6 +43,15 @@ function doGet(e) {
       if (date instanceof Date && !isNaN(date.getTime())) date = Utilities.formatDate(date, timezone, "yyyy-MM-dd");
       else date = String(date || "").slice(0, 10);
 
+      var wakeTime = diaryTime_(diaryCell_(row, headers, ["wake time", "wake up time"]), timezone);
+      var sleepTime = diaryTime_(diaryCell_(row, headers, ["sleep time", "sleeping time"]), timezone);
+      var sleepDuration = diaryNumber_(diaryCell_(row, headers, ["sleep duration minutes", "sleep minutes"]));
+      if (sleepDuration === null && wakeTime && sleepTime) {
+        var wakeParts = wakeTime.split(":").map(Number);
+        var sleepParts = sleepTime.split(":").map(Number);
+        sleepDuration = (wakeParts[0] * 60 + wakeParts[1] - sleepParts[0] * 60 - sleepParts[1] + 1440) % 1440;
+      }
+
       return {
         name: String(diaryCell_(row, headers, ["name", "person", "person name"]) || "").trim(),
         date: date,
@@ -50,16 +59,22 @@ function doGet(e) {
         quran: diaryFlag_(diaryCell_(row, headers, ["quran", "quran complete", "quran completion"])),
         lecture: diaryFlag_(diaryCell_(row, headers, ["lecture", "lecture complete", "lecture completion"])),
         p: prayers,
-        social: diaryNumber_(diaryCell_(row, headers, ["social", "social min", "social minutes", "social media", "social media min", "social media minutes"])),
+        social: diaryNumber_(diaryCell_(row, headers, ["screen time min", "mobile screen time min", "social", "social min", "social minutes", "social media", "social media min", "social media minutes"])),
+        wakeTime: wakeTime,
+        sleepTime: sleepTime,
+        sleepDurationMinutes: sleepDuration,
+        activities: String(diaryCell_(row, headers, ["activities", "daily activities"]) || ""),
         note: String(diaryCell_(row, headers, ["note", "notes"]) || "")
       };
+      });
+      records = records.concat(sheetRecords);
     });
 
     return diaryOutput_({ ok: true, records: records }, e);
   } catch (error) {
     // Do not return stack traces, spreadsheet identifiers, or account details.
     console.error("Diary GET failed: " + error.message);
-    return diaryOutput_({ ok: false, error: "Could not read diary records from Sheet1." }, e);
+    return diaryOutput_({ ok: false, error: "Could not read diary records from Sheet1 and Sheet2." }, e);
   }
 }
 
@@ -112,4 +127,11 @@ function diaryNumber_(value) {
   if (value === "" || value === null || value === undefined) return null;
   var n = Number(value);
   return isFinite(n) ? n : null;
+}
+
+function diaryTime_(value, timezone) {
+  if (value instanceof Date && !isNaN(value.getTime())) return Utilities.formatDate(value, timezone, "HH:mm");
+  var text = String(value || "").trim();
+  var match = text.match(/^(\d{1,2}):(\d{2})/);
+  return match ? String(match[1]).padStart(2, "0") + ":" + match[2] : "";
 }

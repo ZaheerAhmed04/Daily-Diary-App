@@ -64,6 +64,7 @@ details summary{color:#f1e7cc;font-size:15px;cursor:pointer;margin:10px 0}
 .details-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .details-head button{width:auto;margin:0}
 .history-reason{white-space:normal;min-width:120px;max-width:240px;text-align:right!important}
+.activity-cell{white-space:pre-wrap!important;min-width:220px;max-width:360px;text-align:right!important}
 .dashboard-shell{--dash-bg:#f4f7f5;--dash-card:#fff;--dash-ink:#173a36;--dash-muted:#68807a;--dash-border:#e0e9e5;--dash-shadow:0 8px 24px rgba(15,43,39,.07);background:var(--dash-bg);border:1px solid #d7e3de;border-radius:20px;padding:clamp(14px,2.5vw,26px);color:var(--dash-ink)}
 .analytics-dark .dashboard-shell{--dash-bg:#102b2d;--dash-card:#183638;--dash-ink:#e8f1ec;--dash-muted:#aac0b8;--dash-border:#31504c;--dash-shadow:0 8px 24px rgba(0,0,0,.2);border-color:#31504c}
 .dashboard-header{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px}
@@ -128,16 +129,28 @@ details summary{color:#f1e7cc;font-size:15px;cursor:pointer;margin:10px 0}
 <div class="card"><h2>نماز</h2><div id="prayers"></div></div>
 
 <div class="card">
-  <h2>سوشل میڈیا</h2>
-  <label class="f">آج کتنی دیر استعمال کیا؟</label>
+  <h2>موبائل اسکرین ٹائم (Mobile Screen Time)</h2>
   <div class="sm">
-    <input id="sh" type="number" min="0" value="0" dir="ltr"><span>گھنٹے</span>
-    <input id="smin" type="number" min="0" max="59" value="0" dir="ltr"><span>منٹ</span>
+    <div><label class="f" for="sh">گھنٹے</label><input id="sh" type="number" min="0" value="0" dir="ltr"></div>
+    <div><label class="f" for="smin">منٹ</label><input id="smin" type="number" min="0" max="59" value="0" dir="ltr"></div>
   </div>
-  <div class="f" style="font-size:13px;color:var(--mut)">اگر بالکل استعمال نہیں کیا تو دونوں 0 رہنے دیں۔</div>
+  <div class="f" id="screenTimeTotal" style="font-size:13px;color:var(--mut)">کل اسکرین ٹائم: 0 منٹ</div>
+  <label class="f" for="note" style="margin-top:8px">نوٹ (اختیاری)</label>
+  <textarea id="note" rows="2"></textarea>
 </div>
 
-<div class="card"><label class="f">نوٹ (اختیاری)</label><textarea id="note" rows="2"></textarea></div>
+<div class="card">
+  <h2>نیند اور روزانہ کا شیڈول</h2>
+  <label class="f" for="wakeTime">صبح اٹھنے کا وقت</label><input id="wakeTime" type="time" dir="ltr">
+  <label class="f" for="sleepTime" style="margin-top:8px">رات سونے کا وقت</label><input id="sleepTime" type="time" dir="ltr">
+  <div class="f" id="sleepDuration" style="font-size:13px;color:var(--mut);margin-top:6px">اٹھنے اور سونے کا وقت منتخب کریں۔</div>
+</div>
+
+<div class="card">
+  <h2>آج میں نے کیا کیا؟</h2>
+  <label class="f" for="activities">آج کے دن کی سرگرمیاں اور اہم کام لکھیں۔</label>
+  <textarea id="activities" rows="6" placeholder="آج کی سرگرمیاں، کام، پڑھائی یا اہم واقعات لکھیں۔"></textarea>
+</div>
 
 <button class="p" id="mk">تصویر بنائیں / شیئر کریں</button>
 <button class="s" id="sv">گوگل شیٹ میں محفوظ کریں</button>
@@ -179,7 +192,8 @@ details summary{color:#f1e7cc;font-size:15px;cursor:pointer;margin:10px 0}
       <article class="chart-card"><h3>ہر نماز کی کارکردگی</h3><div class="chart-wrap"><canvas id="prayerBars"></canvas></div></article>
       <article class="chart-card wide"><h3>قرآن، لیکچر اور جماعت کا رجحان</h3><div class="chart-wrap"><canvas id="performanceTrend"></canvas></div></article>
       <article class="chart-card"><h3>قرآن اور لیکچر تکمیل</h3><div class="chart-wrap"><canvas id="completionDonut"></canvas></div></article>
-      <article class="chart-card"><h3>روزانہ سوشل میڈیا استعمال</h3><div class="chart-wrap"><canvas id="socialTrend"></canvas></div></article>
+      <article class="chart-card"><h3>روزانہ موبائل اسکرین ٹائم</h3><div class="chart-wrap"><canvas id="screenTimeTrend"></canvas></div></article>
+      <article class="chart-card"><h3>روزانہ نیند کے گھنٹے</h3><div class="chart-wrap"><canvas id="sleepTrend"></canvas></div></article>
       <article class="chart-card wide"><h3>فرد کے لحاظ سے قرآن اور لیکچر</h3><div class="chart-wrap"><canvas id="personBars"></canvas></div></article>
       <article class="chart-card wide"><h3>دو افراد کا موازنہ</h3><div class="chart-wrap"><canvas id="compareChart"></canvas></div></article>
     </div>
@@ -193,7 +207,7 @@ details summary{color:#f1e7cc;font-size:15px;cursor:pointer;margin:10px 0}
 
 <script>
 const $=id=>document.getElementById(id);
-const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwwUf1ZaGFRyuHh8k8EG2HQTSeV8s282K7Qu64qWsSBFNuGZBv-vysONkd-Yoqo9q674g/exec";
+const SCRIPT_URL="https://script.google.com/macros/s/AKfycbwaP8LmIYPe4QUu692L6nJmhVhhKJhPHf-_R09HJ4ASvu8rJgK43Bob1FkJUtParJP8ow/exec";
 const APP_DOWNLOAD_URL="https://dailydairyapp.netlify.app/daily-diary.apk";
 const PR=["فجر","ظہر","عصر","مغرب","عشاء"];
 const T=[
@@ -238,7 +252,7 @@ function init(){
   $("date").value=new Date().toISOString().slice(0,10);
   if(ls.get("analyticsTheme","")==="dark")$("app").classList.add("analytics-dark");
   $("themeToggle").textContent=$("app").classList.contains("analytics-dark")?"لائٹ موڈ":"ڈارک موڈ";
-  calcDay();render();
+  calcDay();render();updateScreenTime();updateSleepDuration();
 }
 function calcDay(){
   const s=$("start").value,d=$("date").value;
@@ -248,8 +262,14 @@ $("date").onchange=calcDay;
 $("start").onchange=()=>{ls.set("start",$("start").value);calcDay()};
 $("name").oninput=()=>ls.set("name",$("name").value);
 
-function socialMin(){return (parseInt($("sh").value)||0)*60+(parseInt($("smin").value)||0)}
-function fmt(m){const h=Math.floor(m/60),n=m%60;return (h?h+" گھنٹہ":"")+(h&&n?" ":"")+(n?n+" منٹ":"")}
+function screenTimeMin(){return (parseInt($("sh").value)||0)*60+(parseInt($("smin").value)||0)}
+function updateScreenTime(){const m=screenTimeMin();$("screenTimeTotal").textContent="کل اسکرین ٹائم: "+(m===0?"0 منٹ":fmt(m));}
+function time12(value){if(!value)return "";const [h,m]=value.split(":").map(Number),ampm=h<12?"AM":"PM",hour=h%12||12;return hour+":"+String(m).padStart(2,"0")+" "+ampm}
+function sleepMinutes(){const sleep=$("sleepTime").value,wake=$("wakeTime").value;if(!sleep||!wake)return null;const [sh,sm]=sleep.split(":").map(Number),[wh,wm]=wake.split(":").map(Number);return (wh*60+wm-(sh*60+sm)+1440)%1440}
+function updateSleepDuration(){const mins=sleepMinutes();$("sleepDuration").textContent=mins===null?"اٹھنے اور سونے کا وقت منتخب کریں۔":"کل نیند: "+fmt(mins);}
+$("sh").oninput=updateScreenTime;$("smin").oninput=updateScreenTime;
+$("wakeTime").oninput=updateSleepDuration;$("sleepTime").oninput=updateSleepDuration;
+function fmt(m){if(m===0)return "0 منٹ";const h=Math.floor(m/60),n=m%60;return (h?h+" گھنٹہ":"")+(h&&n?" ":"")+(n?n+" منٹ":"")}
 function msg(t){$("msg").textContent=t}
 function check(){
   for(let i=0;i<5;i++){const q=S.p[i];if(q.s!=="j"&&!q.r.trim()){msg(PR[i]+(q.s==="a"?" اکیلے پڑھی ہے":" نہیں پڑھی")+"، براہ کرم وجہ لکھیں۔");return false}}
@@ -260,6 +280,7 @@ const PR_EN=["Fajr","Zuhr","Asr","Maghrib","Isha"];
 let allRecords=[],statsLoaded=false,statsLoading=false,refreshQueued=false,selectedPerson="";
 function keyOf(v){return String(v??"").toLowerCase().replace(/[^a-z0-9]/g,"")}
 function field(o,names){if(!o||typeof o!=="object")return "";const keys=Object.keys(o),wanted=names.map(keyOf);for(const k of keys)if(wanted.includes(keyOf(k)))return o[k];return ""}
+function durationFromTimes(sleep,wake){if(!sleep||!wake)return null;const parse=v=>{const m=String(v).match(/^(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):null},a=parse(sleep),b=parse(wake);return a===null||b===null?null:(b-a+1440)%1440}
 function normalizeRecord(raw){
   const rawP=field(raw,["p","prayers"]);let parsedP=rawP;
   if(typeof parsedP==="string"){try{parsedP=JSON.parse(parsedP)}catch(e){parsedP=[]}}
@@ -273,13 +294,18 @@ function normalizeRecord(raw){
   });
   const dateRaw=field(raw,["date","diary date"]);
   const date=String(dateRaw??"").trim();
+  const wakeTime=String(field(raw,["wake time","wake up time"])??"").trim(),sleepTime=String(field(raw,["sleep time","sleeping time"])??"").trim();
+  const sleepDuration=toNumber(field(raw,["sleep duration min","sleep duration minutes","sleep minutes"]));
   return {
     name:String(field(raw,["name","person","person name"])??"").trim(),
     date:date?date.slice(0,10):"",day:field(raw,["day","total day"]),
     quran:normalizeFlag(field(raw,["quran","quran complete","quran completion"])),
     lecture:normalizeFlag(field(raw,["lecture","lecture complete","lecture completion"])),
     p,
-    social:toNumber(field(raw,["social","social min","social minutes","social media","social media min","social media minutes"])),
+    social:toNumber(field(raw,["screen time min","mobile screen time min","social","social min","social minutes","social media","social media min","social media minutes"])),
+    wakeTime,sleepTime,
+    sleepDurationMinutes:sleepDuration===null?durationFromTimes(sleepTime,wakeTime):sleepDuration,
+    activities:String(field(raw,["activities","daily activities"])??"").trim(),
     note:String(field(raw,["note","notes"])??"").trim()
   };
 }
@@ -314,7 +340,7 @@ function minutesText(m){if(m===null||m===undefined)return "—";const n=Math.rou
 function personNames(records){return [...new Set(records.map(r=>r.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b))}
 function prayerCounts(records){const out={j:0,a:0,n:0,total:0};records.forEach(r=>r.p.forEach(p=>{if(p.s){out[p.s]++;out.total++}}));return out}
 function overallCards(records){
-  const q=records.filter(r=>r.quran!==null),l=records.filter(r=>r.lecture!==null),pc=prayerCounts(records),social=average(records.map(r=>r.social));
+  const q=records.filter(r=>r.quran!==null),l=records.filter(r=>r.lecture!==null),pc=prayerCounts(records),social=average(records.map(r=>r.social)),sleep=average(records.map(r=>r.sleepDurationMinutes)),activityDays=records.filter(r=>r.activities.trim()).length;
   const cards=[
     ["کل رجسٹرڈ افراد",personNames(records).length],
     ["کل ڈائری اندراجات",records.length],
@@ -323,7 +349,9 @@ function overallCards(records){
     ["نماز جماعت",pct(pc.j,pc.total)],
     ["نماز اکیلے",pct(pc.a,pc.total)],
     ["نماز نہیں",pct(pc.n,pc.total)],
-    ["اوسط سوشل میڈیا",minutesText(social)]
+    ["اوسط موبائل اسکرین ٹائم",minutesText(social)],
+    ["اوسط نیند",minutesText(sleep)],
+    ["سرگرمیوں والے دن",activityDays]
   ];
   $("overallStats").innerHTML=cards.map(([label,value])=>'<div class="stat-card"><div class="label">'+esc(label)+'</div><div class="value">'+esc(value)+'</div></div>').join("");
 }
@@ -344,17 +372,17 @@ function renderTable(records){
   const groups=new Map();records.forEach(r=>{if(!r.name)return;if(!groups.has(r.name))groups.set(r.name,[]);groups.get(r.name).push(r)});
   const rows=[...groups].map(([name,rs])=>({name,rs,summary:personSummary(rs)}));const sort=$("sortStats").value;
   rows.sort((a,b)=>sort==="days"?b.summary.days-a.summary.days:sort==="recent"?b.summary.recent.localeCompare(a.summary.recent):a.name.localeCompare(b.name));
-  $("statsTableArea").innerHTML='<div class="table-wrap"><table class="stats-table"><thead><tr><th>نام</th><th>کل دن</th><th>قرآن %</th><th>لیکچر %</th><th>جماعت %</th><th>اکیلے %</th><th>نہیں %</th><th>اوسط سوشل میڈیا</th></tr></thead><tbody>'+rows.map(x=>'<tr><td><button class="person-link" type="button" data-person="'+esc(x.name)+'">'+esc(x.name)+'</button></td><td>'+x.summary.days+'</td><td>'+x.summary.quran+'</td><td>'+x.summary.lecture+'</td><td>'+x.summary.jamaat+'</td><td>'+x.summary.akele+'</td><td>'+x.summary.nahi+'</td><td>'+minutesText(x.summary.social)+'</td></tr>').join("")+'</tbody></table></div>';
+  $("statsTableArea").innerHTML='<div class="table-wrap"><table class="stats-table"><thead><tr><th>نام</th><th>کل دن</th><th>قرآن %</th><th>لیکچر %</th><th>جماعت %</th><th>اکیلے %</th><th>نہیں %</th><th>اوسط موبائل اسکرین ٹائم</th></tr></thead><tbody>'+rows.map(x=>'<tr><td><button class="person-link" type="button" data-person="'+esc(x.name)+'">'+esc(x.name)+'</button></td><td>'+x.summary.days+'</td><td>'+x.summary.quran+'</td><td>'+x.summary.lecture+'</td><td>'+x.summary.jamaat+'</td><td>'+x.summary.akele+'</td><td>'+x.summary.nahi+'</td><td>'+minutesText(x.summary.social)+'</td></tr>').join("")+'</tbody></table></div>';
   $("statsTableArea").querySelectorAll("[data-person]").forEach(b=>b.onclick=()=>{selectedPerson=b.dataset.person;$("personFilter").value=selectedPerson;renderStats()});
 }
 function statusLabel(s){return s==="j"?"جماعت":s==="a"?"اکیلے":s==="n"?"نہیں":"—"}
 function renderPersonDetails(records,name){
   const rs=records.filter(r=>r.name===name).sort((a,b)=>b.date.localeCompare(a.date)),sum=personSummary(rs),pc=sum.pc;
   const byPrayer=PR.map((label,i)=>{const c={j:0,a:0,n:0,total:0};rs.forEach(r=>{const s=r.p[i].s;if(s){c[s]++;c.total++}});return '<tr><td>'+label+'</td><td>'+pct(c.j,c.total)+' ('+c.j+'/'+c.total+')</td><td>'+pct(c.a,c.total)+' ('+c.a+'/'+c.total+')</td><td>'+pct(c.n,c.total)+' ('+c.n+'/'+c.total+')</td></tr>'}).join("");
-  const history=rs.map(r=>'<tr><td>'+esc(r.date||"—")+'</td><td>'+statusFlag(r.quran)+'</td><td>'+statusFlag(r.lecture)+'</td>'+r.p.map(p=>'<td>'+esc(statusLabel(p.s))+(p.r?'<div class="history-reason">'+esc(p.r)+'</div>':'')+'</td>').join("")+'<td>'+minutesText(r.social)+'</td><td class="history-reason">'+esc(r.note||"—")+'</td></tr>').join("");
+  const history=rs.map(r=>'<tr><td>'+esc(r.date||"—")+'</td><td>'+statusFlag(r.quran)+'</td><td>'+statusFlag(r.lecture)+'</td>'+r.p.map(p=>'<td>'+esc(statusLabel(p.s))+(p.r?'<div class="history-reason">'+esc(p.r)+'</div>':'')+'</td>').join("")+'<td>'+minutesText(r.social)+'</td><td dir="ltr">'+esc(r.wakeTime||"—")+'</td><td dir="ltr">'+esc(r.sleepTime||"—")+'</td><td>'+minutesText(r.sleepDurationMinutes)+'</td><td class="activity-cell">'+esc(r.activities||"—")+'</td><td class="activity-cell">'+esc(r.note||"—")+'</td></tr>').join("");
   $("personDetails").innerHTML='<div class="details-head"><h2>'+esc(name)+' — تفصیلی رپورٹ</h2><button type="button" class="g" id="backStats">واپس فہرست</button></div><div class="stats-grid">'+[
-    ["کل ڈائری اندراجات",sum.days],["قرآن تکمیل",sum.quran],["لیکچر تکمیل",sum.lecture],["جماعت",pct(pc.j,pc.total)],["اکیلے",pct(pc.a,pc.total)],["نہیں",pct(pc.n,pc.total)],["اوسط سوشل میڈیا",minutesText(sum.social)]
-  ].map(([l,v])=>'<div class="stat-card"><div class="label">'+esc(l)+'</div><div class="value">'+esc(v)+'</div></div>').join("")+'</div><h2>ہر نماز کی کارکردگی</h2><div class="table-wrap"><table class="stats-table"><thead><tr><th>نماز</th><th>جماعت</th><th>اکیلے</th><th>نہیں</th></tr></thead><tbody>'+byPrayer+'</tbody></table></div><h2 style="margin-top:16px">تاریخ وار ڈائری اور وجوہات</h2><div class="table-wrap"><table class="stats-table"><thead><tr><th>تاریخ</th><th>قرآن</th><th>لیکچر</th>'+PR.map(n=>'<th>'+n+'</th>').join("")+'<th>سوشل میڈیا</th><th>نوٹ</th></tr></thead><tbody>'+history+'</tbody></table></div>';
+    ["کل ڈائری اندراجات",sum.days],["قرآن تکمیل",sum.quran],["لیکچر تکمیل",sum.lecture],["جماعت",pct(pc.j,pc.total)],["اکیلے",pct(pc.a,pc.total)],["نہیں",pct(pc.n,pc.total)],["اوسط موبائل اسکرین ٹائم",minutesText(sum.social)]
+  ].map(([l,v])=>'<div class="stat-card"><div class="label">'+esc(l)+'</div><div class="value">'+esc(v)+'</div></div>').join("")+'</div><h2>ہر نماز کی کارکردگی</h2><div class="table-wrap"><table class="stats-table"><thead><tr><th>نماز</th><th>جماعت</th><th>اکیلے</th><th>نہیں</th></tr></thead><tbody>'+byPrayer+'</tbody></table></div><h2 style="margin-top:16px">تاریخ وار ڈائری اور وجوہات</h2><div class="table-wrap"><table class="stats-table"><thead><tr><th>تاریخ</th><th>قرآن</th><th>لیکچر</th>'+PR.map(n=>'<th>'+n+'</th>').join("")+'<th>موبائل اسکرین ٹائم</th><th>اٹھنے کا وقت</th><th>سونے کا وقت</th><th>کل نیند</th><th>سرگرمیاں</th><th>نوٹ</th></tr></thead><tbody>'+history+'</tbody></table></div>';
   $("backStats").onclick=()=>{selectedPerson="";$("personFilter").value="";renderStats()};
 }
 function statusFlag(v){return v===1?"✓":v===0?"✗":"—"}
@@ -385,10 +413,10 @@ function bucketKey(date,granularity){
   return date;
 }
 function trendBuckets(records,granularity){
-  const map=new Map();records.forEach(r=>{const key=bucketKey(r.date,granularity);if(!key)return;if(!map.has(key))map.set(key,{q:0,qn:0,l:0,ln:0,j:0,pn:0,s:0,sn:0});const b=map.get(key);
-    if(r.quran!==null){b.q+=r.quran;b.qn++}if(r.lecture!==null){b.l+=r.lecture;b.ln++}r.p.forEach(p=>{if(p.s){b.pn++;if(p.s==="j")b.j++}});if(r.social!==null){b.s+=r.social;b.sn++}
+  const map=new Map();records.forEach(r=>{const key=bucketKey(r.date,granularity);if(!key)return;if(!map.has(key))map.set(key,{q:0,qn:0,l:0,ln:0,j:0,pn:0,s:0,sn:0,sl:0,sln:0});const b=map.get(key);
+    if(r.quran!==null){b.q+=r.quran;b.qn++}if(r.lecture!==null){b.l+=r.lecture;b.ln++}r.p.forEach(p=>{if(p.s){b.pn++;if(p.s==="j")b.j++}});if(r.social!==null){b.s+=r.social;b.sn++}if(r.sleepDurationMinutes!==null){b.sl+=r.sleepDurationMinutes;b.sln++}
   });
-  return [...map].sort((a,b)=>a[0].localeCompare(b[0])).map(([key,b])=>({key,q:pctValue(b.q,b.qn),l:pctValue(b.l,b.ln),j:pctValue(b.j,b.pn),s:b.sn?b.s/b.sn:null}));
+  return [...map].sort((a,b)=>a[0].localeCompare(b[0])).map(([key,b])=>({key,q:pctValue(b.q,b.qn),l:pctValue(b.l,b.ln),j:pctValue(b.j,b.pn),s:b.sn?b.s/b.sn:null,sl:b.sln?b.sl/b.sln:null}));
 }
 function chartColors(){const dark=$("app").classList.contains("analytics-dark");return dark?{ink:"#e8f1ec",muted:"#aac0b8",grid:"rgba(170,192,184,.14)",green:"#50c89b",gold:"#e0b95e",red:"#e47c70",blue:"#78aef7",fill:"rgba(80,200,155,.18)"}:{ink:"#173a36",muted:"#68807a",grid:"rgba(70,100,90,.12)",green:"#1f8a63",gold:"#c49a45",red:"#bd6255",blue:"#5489c7",fill:"rgba(31,138,99,.14)"}}
 function drawChart(id,type,data,extra={}){
@@ -409,7 +437,8 @@ function renderCharts(records){
   drawChart("performanceTrend","line",{labels,datasets:[{label:"قرآن",data:buckets.map(x=>x.q),borderColor:c.green,backgroundColor:c.green,tension:.32,spanGaps:true},{label:"لیکچر",data:buckets.map(x=>x.l),borderColor:c.blue,backgroundColor:c.blue,tension:.32,spanGaps:true},{label:"جماعت",data:buckets.map(x=>x.j),borderColor:c.gold,backgroundColor:c.gold,tension:.32,spanGaps:true}]},lineOptions);
   const qs=records.filter(r=>r.quran!==null),ls=records.filter(r=>r.lecture!==null),qPct=pctValue(qs.reduce((n,r)=>n+r.quran,0),qs.length),lPct=pctValue(ls.reduce((n,r)=>n+r.lecture,0),ls.length);
   drawChart("completionDonut","doughnut",{labels:["قرآن مکمل","قرآن باقی","لیکچر مکمل","لیکچر باقی"],datasets:[{data:[qPct||0,100-(qPct||0),lPct||0,100-(lPct||0)],backgroundColor:[c.green,c.grid,c.blue,"rgba(110,130,125,.22)"],borderColor:"transparent",borderWidth:0}]},{cutout:"58%",plugins:{legend:{position:"bottom",labels:{color:c.muted,usePointStyle:true,padding:12}},tooltip:{callbacks:{label:item=>item.label+": "+Number(item.raw).toFixed(1)+"%"}}}});
-  drawChart("socialTrend","line",{labels,datasets:[{label:"اوسط منٹ",data:buckets.map(x=>x.s),borderColor:c.blue,backgroundColor:c.fill,fill:true,tension:.3,spanGaps:true,pointRadius:2}]},{interaction:{mode:"index",intersect:false},scales:{x:{ticks:{color:c.muted,maxTicksLimit:12},grid:{display:false}},y:{beginAtZero:true,ticks:{color:c.muted,callback:v=>v+" منٹ"},grid:{color:c.grid}}}});
+  drawChart("screenTimeTrend","line",{labels,datasets:[{label:"اوسط منٹ",data:buckets.map(x=>x.s),borderColor:c.blue,backgroundColor:c.fill,fill:true,tension:.3,spanGaps:true,pointRadius:2}]},{interaction:{mode:"index",intersect:false},scales:{x:{ticks:{color:c.muted,maxTicksLimit:12},grid:{display:false}},y:{beginAtZero:true,ticks:{color:c.muted,callback:v=>v+" منٹ"},grid:{color:c.grid}}}});
+  drawChart("sleepTrend","line",{labels,datasets:[{label:"اوسط نیند (گھنٹے)",data:buckets.map(x=>x.sl===null?null:x.sl/60),borderColor:c.green,backgroundColor:c.fill,fill:true,tension:.3,spanGaps:true,pointRadius:2}]},{interaction:{mode:"index",intersect:false},scales:{x:{ticks:{color:c.muted,maxTicksLimit:12},grid:{display:false}},y:{beginAtZero:true,ticks:{color:c.muted,callback:v=>v+" گھنٹے"},grid:{color:c.grid}}}});
   const groups=new Map();records.forEach(r=>{if(!r.name)return;if(!groups.has(r.name))groups.set(r.name,[]);groups.get(r.name).push(r)});
   const byPerson=[...groups].map(([name,rs])=>({name,rs})).sort((a,b)=>(summaryScore(b.rs)||0)-(summaryScore(a.rs)||0)).slice(0,16);
   drawChart("personBars","bar",{labels:byPerson.map(x=>x.name),datasets:[{label:"قرآن %",data:byPerson.map(x=>{const a=x.rs.filter(r=>r.quran!==null);return pctValue(a.reduce((n,r)=>n+r.quran,0),a.length)}),backgroundColor:c.green},{label:"لیکچر %",data:byPerson.map(x=>{const a=x.rs.filter(r=>r.lecture!==null);return pctValue(a.reduce((n,r)=>n+r.lecture,0),a.length)}),backgroundColor:c.blue}]},{scales:{x:{ticks:{color:c.muted,maxTicksLimit:12},grid:{display:false}},y:{beginAtZero:true,max:100,ticks:{color:c.muted,callback:v=>v+"%"},grid:{color:c.grid}}}});
@@ -457,7 +486,7 @@ async function loadStats(silent=false){
   finally{statsLoading=false;button.disabled=false;if(refreshQueued){refreshQueued=false;loadStats(true)}}
 }
 function sameDiaryRecord(a,b){
-  if(a.name!==b.name||a.date!==b.date||String(a.day??"")!==String(b.day??"")||a.quran!==b.quran||a.lecture!==b.lecture||a.social!==b.social||a.note!==b.note)return false;
+  if(a.name!==b.name||a.date!==b.date||String(a.day??"")!==String(b.day??"")||a.quran!==b.quran||a.lecture!==b.lecture||a.social!==b.social||a.wakeTime!==b.wakeTime||a.sleepTime!==b.sleepTime||a.sleepDurationMinutes!==b.sleepDurationMinutes||a.activities!==b.activities||a.note!==b.note)return false;
   return a.p.every((p,i)=>p.s===b.p[i].s&&p.r===b.p[i].r);
 }
 async function confirmSavedRecord(payload){
@@ -481,8 +510,8 @@ $("themeToggle").onclick=()=>{const dark=$("app").classList.toggle("analytics-da
 $("printStats").onclick=()=>window.print();
 function csvCell(value){return '"'+String(value??"").replace(/"/g,'""')+'"'}
 function exportStatsCsv(){
-  const rows=filteredRecords().records,headers=["Name","Date","Day","Quran","Lecture",...PR_EN.flatMap(p=>[p+" Status",p+" Reason"]),"Social Min","Note"];
-  const lines=[headers,...rows.map(r=>[r.name,r.date,r.day,r.quran===null?"":r.quran,r.lecture===null?"":r.lecture,...r.p.flatMap(p=>[p.s,p.r]),r.social===null?"":r.social,r.note])].map(row=>row.map(csvCell).join(","));
+  const rows=filteredRecords().records,headers=["Name","Date","Day","Quran","Lecture",...PR_EN.flatMap(p=>[p+" Status",p+" Reason"]),"Screen Time Min","Wake Time","Sleep Time","Sleep Duration Min","Activities","Note"];
+  const lines=[headers,...rows.map(r=>[r.name,r.date,r.day,r.quran===null?"":r.quran,r.lecture===null?"":r.lecture,...r.p.flatMap(p=>[p.s,p.r]),r.social===null?"":r.social,r.wakeTime,r.sleepTime,r.sleepDurationMinutes===null?"":r.sleepDurationMinutes,r.activities,r.note])].map(row=>row.map(csvCell).join(","));
   const blob=new Blob(["\uFEFF"+lines.join("\r\n")],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="diary-analytics.csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
 }
 $("exportStats").onclick=exportStatsCsv;
@@ -490,73 +519,43 @@ $("exportStats").onclick=exportStatsCsv;
 async function draw(){
   try{await document.fonts.load("700 40px 'Noto Naskh Arabic'")}catch(e){}
   const F="'Noto Naskh Arabic',Tahoma,serif";
-  const cv=$("cv"),W=1080,R=W-110,L=110;
-  const pH=S.p.map(p=>p.s!=="j"?150:100);
-  const note=$("note").value.trim();
+  const cv=$("cv"),W=1080,R=W-110,L=110,pH=S.p.map(p=>p.s!=="j"?150:100);
+  const note=$("note").value.trim(),activities=$("activities").value.trim(),m=screenTimeMin(),sleep=sleepMinutes();
   const qr=$("appDownloadQr");
   if(!qr.complete)await new Promise((resolve,reject)=>{qr.onload=resolve;qr.onerror=reject});
   if(!qr.naturalWidth)throw new Error("App download QR code is unavailable");
-  cv.width=W;
-  const measure=cv.getContext("2d");measure.font="34px "+F;
-  const noteLines=note?wrappedLineCount(measure,note,R-L):0;
+  const textX=R,maxWidth=R-L,lineHeight=52;
+  const wrapLines=(ctx,text,width)=>{const out=[];String(text||"").split(/\r?\n/).forEach(paragraph=>{if(!paragraph){out.push("");return}let line="";for(const word of paragraph.split(/\s+/)){let candidate=line?line+" "+word:word;if(ctx.measureText(candidate).width<=width){line=candidate;continue}if(line)out.push(line);line="";if(ctx.measureText(word).width<=width){line=word;continue}let part="";for(const ch of word){if(part&&ctx.measureText(part+ch).width>width){out.push(part);part=ch}else part+=ch}line=part}out.push(line)});return out};
+  const measure=document.createElement("canvas").getContext("2d");measure.font="34px "+F;
+  const noteLines=note?wrapLines(measure,note,maxWidth):[],activityLines=activities?wrapLines(measure,activities,maxWidth):[];
   const footerHeight=240;
-  const H=520+T.length*110+90+pH.reduce((a,b)=>a+b,0)+130+(note?Math.max(170,noteLines*56+56):0)+footerHeight+70;
-  cv.height=H;const c=cv.getContext("2d");
-  c.direction="rtl";c.textBaseline="alphabetic";
-  c.fillStyle="#0e2a2f";c.fillRect(0,0,W,H);
-  c.fillStyle="#eef4f1";rr(c,40,40,W-80,H-80,36);c.fill();
-  c.fillStyle="#b8892b";c.fillRect(R-90,110,90,6);
-  c.textAlign="right";c.fillStyle="#12312f";c.font="700 100px "+F;
-  c.fillText("دن "+($("day").value||"-"),R,250);
-  c.font="40px "+F;c.fillStyle="#5d7873";
-  const dt=$("date").value?new Date($("date").value).toLocaleDateString("ur-PK",{day:"numeric",month:"long",year:"numeric"}):"";
-  c.fillText($("name").value||"",R,325);c.fillText(dt,R,385);
-  let y=440;
-  const line=()=>{c.strokeStyle="#cfe0da";c.lineWidth=2;c.beginPath();c.moveTo(L,y);c.lineTo(R,y);c.stroke()};
-  T.forEach(x=>{
-    line();c.textAlign="right";c.fillStyle="#12312f";c.font="38px "+F;
-    c.fillText(x.t,R,y+68);
-    c.textAlign="left";c.font="54px system-ui,sans-serif";c.fillText(S[x.k]?"✅":"❌",L,y+70);
-    y+=110;
-  });
+  const H=520+T.length*110+90+pH.reduce((a,b)=>a+b,0)+140+180+170+activityLines.length*lineHeight+(noteLines.length?80+noteLines.length*lineHeight:0)+footerHeight+70;
+  cv.width=W;cv.height=H;const c=cv.getContext("2d");
+  c.direction="rtl";c.textBaseline="alphabetic";c.fillStyle="#0e2a2f";c.fillRect(0,0,W,H);
+  c.fillStyle="#eef4f1";rr(c,40,40,W-80,H-80,36);c.fill();c.fillStyle="#b8892b";c.fillRect(R-90,110,90,6);
+  c.textAlign="right";c.fillStyle="#12312f";c.font="700 100px "+F;c.fillText("دن "+($("day").value||"-"),R,250);
+  c.font="40px "+F;c.fillStyle="#5d7873";const dt=$("date").value?new Date($("date").value).toLocaleDateString("ur-PK",{day:"numeric",month:"long",year:"numeric"}):"";c.fillText($("name").value||"",R,325);c.fillText(dt,R,385);
+  let y=440;const line=()=>{c.strokeStyle="#cfe0da";c.lineWidth=2;c.beginPath();c.moveTo(L,y);c.lineTo(R,y);c.stroke()};
+  T.forEach(x=>{line();c.textAlign="right";c.fillStyle="#12312f";c.font="38px "+F;c.fillText(x.t,R,y+68);c.textAlign="left";c.font="54px system-ui,sans-serif";c.fillText(S[x.k]?"✅":"❌",L,y+70);y+=110});
   line();c.textAlign="right";c.fillStyle="#b8892b";c.font="700 40px "+F;c.fillText("نماز",R,y+68);y+=90;
-  PR.forEach((n,i)=>{
-    const p=S.p[i];line();
-    c.textAlign="right";c.fillStyle="#12312f";c.font="38px "+F;c.fillText(n,R,y+66);
-    const col=p.s==="j"?"#1f8a63":p.s==="a"?"#c27a14":"#b24a3b";
-    c.textAlign="left";c.fillStyle=col;c.font="700 36px "+F;
-    c.fillText(LBL[p.s]+(p.s==="j"?" ✅":p.s==="a"?" ⚠️":" ❌"),L,y+66);
-    if(p.s!=="j"){
-      c.textAlign="right";c.fillStyle="#5d7873";c.font="30px "+F;
-      let t="وجہ: "+p.r;while(c.measureText(t).width>R-L&&t.length>5)t=t.slice(0,-2);
-      c.fillText(t,R,y+120);
-    }
-    y+=pH[i];
-  });
-  line();
-  const m=socialMin();
-  c.textAlign="right";c.fillStyle="#12312f";c.font="38px "+F;c.fillText("سوشل میڈیا",R,y+78);
-  c.textAlign="left";c.fillStyle=m===0?"#1f8a63":"#c27a14";c.font="700 36px "+F;
-  c.fillText(m===0?"استعمال نہیں کیا ✅":fmt(m)+" ⏱️",L,y+78);
-  y+=130;
-  if(note){
-    c.textAlign="right";c.fillStyle="#12312f";c.font="34px "+F;
-    wrap(c,note,R,y+50,R-L,56);
-  }
+  PR.forEach((n,i)=>{const p=S.p[i];line();c.textAlign="right";c.fillStyle="#12312f";c.font="38px "+F;c.fillText(n,R,y+66);const col=p.s==="j"?"#1f8a63":p.s==="a"?"#c27a14":"#b24a3b";c.textAlign="left";c.fillStyle=col;c.font="700 36px "+F;c.fillText(LBL[p.s]+(p.s==="j"?" ✅":p.s==="a"?" ⚠️":" ❌"),L,y+66);if(p.s!=="j"){c.textAlign="right";c.fillStyle="#5d7873";c.font="30px "+F;let t="وجہ: "+p.r;while(c.measureText(t).width>maxWidth&&t.length>5)t=t.slice(0,-2);c.fillText(t,R,y+120)}y+=pH[i]});
+  line();c.textAlign="right";c.fillStyle="#12312f";c.font="38px "+F;c.fillText("موبائل اسکرین ٹائم",R,y+78);c.textAlign="left";c.fillStyle=m===0?"#1f8a63":"#c27a14";c.font="700 36px "+F;c.fillText(m===0?"استعمال نہیں کیا ✅":fmt(m)+" ⏱️",L,y+78);y+=130;
+  line();c.textAlign="right";c.fillStyle="#b8892b";c.font="700 40px "+F;c.fillText("نیند اور روزانہ کا شیڈول",R,y+68);y+=88;
+  c.font="34px "+F;c.fillStyle="#12312f";c.textAlign="right";c.fillText("صبح اٹھنے کا وقت",R,y+48);c.textAlign="left";c.fillText(time12($("wakeTime").value)||"منتخب نہیں کیا",L,y+48);y+=56;
+  c.textAlign="right";c.fillText("رات سونے کا وقت",R,y+48);c.textAlign="left";c.fillText(time12($("sleepTime").value)||"منتخب نہیں کیا",L,y+48);y+=56;
+  c.textAlign="right";c.fillText("کل نیند",R,y+48);c.textAlign="left";c.fillText(sleep===null?"وقت منتخب نہیں کیا":fmt(sleep),L,y+48);y+=75;
+  line();c.textAlign="right";c.fillStyle="#b8892b";c.font="700 40px "+F;c.fillText("آج میں نے کیا کیا؟",R,y+65);y+=140;
+  c.textAlign="right";c.fillStyle="#12312f";c.font="34px "+F;activityLines.forEach(text=>{c.fillText(text,textX,y);y+=lineHeight});
+  if(noteLines.length){y+=24;line();c.textAlign="right";c.fillStyle="#12312f";c.font="34px "+F;noteLines.forEach(text=>{c.fillText(text,textX,y);y+=lineHeight})}
   const footerTop=H-footerHeight-40,qrSize=164;
   c.strokeStyle="#cfe0da";c.lineWidth=2;c.beginPath();c.moveTo(L,footerTop);c.lineTo(R,footerTop);c.stroke();
-  rr(c,L,footerTop+32,184,184,18);c.fillStyle="#fff";c.fill();
-  c.drawImage(qr,L+10,footerTop+42,qrSize,qrSize);
+  rr(c,L,footerTop+32,184,184,18);c.fillStyle="#fff";c.fill();c.drawImage(qr,L+10,footerTop+42,qrSize,qrSize);
   const panelLeft=L+210,panelWidth=R-panelLeft;
-  c.textAlign="right";c.fillStyle="#12312f";c.font="700 40px "+F;
-  c.fillText("ڈیلی ڈائری ایپ انسٹال کریں",R,footerTop+74);
-  c.fillStyle="#5d7873";c.font="28px "+F;
-  c.fillText("QR اسکین کریں یا لنک کھولیں",R,footerTop+116);
+  c.textAlign="right";c.fillStyle="#12312f";c.font="700 40px "+F;c.fillText("ڈیلی ڈائری ایپ انسٹال کریں",R,footerTop+74);
+  c.fillStyle="#5d7873";c.font="28px "+F;c.fillText("QR اسکین کریں یا لنک کھولیں",R,footerTop+116);
   rr(c,panelLeft,footerTop+137,panelWidth,62,14);c.fillStyle="#b8892b";c.fill();
-  c.textAlign="center";c.fillStyle="#fff";c.font="700 28px "+F;
-  c.fillText("Android APK ڈاؤن لوڈ کریں",panelLeft+panelWidth/2,footerTop+178);
-  c.direction="ltr";c.textAlign="left";c.fillStyle="#5d7873";c.font="20px system-ui,sans-serif";
-  c.fillText("dailydairyapp.netlify.app/daily-diary.apk",panelLeft,footerTop+222);
+  c.textAlign="center";c.fillStyle="#fff";c.font="700 28px "+F;c.fillText("Android APK ڈاؤن لوڈ کریں",panelLeft+panelWidth/2,footerTop+178);
+  c.direction="ltr";c.textAlign="left";c.fillStyle="#5d7873";c.font="20px system-ui,sans-serif";c.fillText("dailydairyapp.netlify.app/daily-diary.apk",panelLeft,footerTop+222);
   cv.style.display="block";return cv;
 }
 function rr(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
@@ -567,12 +566,19 @@ $("mk").onclick=async()=>{
   msg("");if(!check())return;
   const cv=await draw();
   cv.toBlob(async b=>{
+    if(!b){msg("تصویر تیار نہیں ہو سکی۔ دوبارہ کوشش کریں۔");return}
     const f=new File([b],"diary-day-"+$("day").value+".png",{type:"image/png"});
-    try{
-      if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:"دن "+$("day").value,text:"Daily Diary app download: "+APP_DOWNLOAD_URL});return}
-    }catch(e){if(e.name==="AbortError")return}
+    const title="دن "+$("day").value,shareText="Daily Diary app download: "+APP_DOWNLOAD_URL;
+    if(navigator.share){
+      try{
+        if(!navigator.canShare||navigator.canShare({files:[f]})){
+          await navigator.share({files:[f],title,text:shareText});return;
+        }
+      }catch(e){if(e.name==="AbortError")return}
+      try{await navigator.share({title,text:shareText})}catch(e){if(e.name==="AbortError")return}
+    }
     const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=f.name;a.click();
-    msg("تصویر ڈاؤن لوڈ ہو گئی۔");
+    msg("تصویر ڈاؤن لوڈ ہو گئی۔ ایپ لنک: "+APP_DOWNLOAD_URL);
   },"image/png");
 };
 
@@ -583,12 +589,12 @@ $("sv").onclick=async()=>{
   if(!$("date").value){msg("تاریخ منتخب کریں۔");return}
   if(!check())return;
   const hours=Number($("sh").value)||0,minutes=Number($("smin").value)||0;
-  if(!Number.isInteger(hours)||hours<0||!Number.isInteger(minutes)||minutes<0||minutes>59){msg("سوشل میڈیا کے گھنٹے اور منٹ درست درج کریں۔");return}
+  if(!Number.isInteger(hours)||hours<0||!Number.isInteger(minutes)||minutes<0||minutes>59){msg("اسکرین ٹائم کے گھنٹے اور منٹ درست درج کریں۔");return}
   const code={j:"Jamaat",a:"Akele",n:"Nahi"};
   const d={name:$("name").value.trim(),date:$("date").value,day:$("day").value?Number($("day").value):"",
     quran:S.quran,lecture:S.lecture,
     p:S.p.map(p=>({s:code[p.s],r:p.r.trim()})),
-    social:(hours*60)+minutes,note:$("note").value.trim()};
+    social:(hours*60)+minutes,wakeTime:$("wakeTime").value,sleepTime:$("sleepTime").value,sleepDurationMinutes:sleepMinutes(),activities:$("activities").value.trim(),note:$("note").value.trim()};
   saving=true;$("sv").disabled=true;const original=$("sv").textContent;$("sv").textContent="تصویر بنا کر بھیجا جا رہا ہے...";msg("تصویر تیار ہو رہی ہے...");
   try{
     await draw();
@@ -601,7 +607,7 @@ $("sv").onclick=async()=>{
   finally{saving=false;$("sv").disabled=false;$("sv").textContent=original}
 };
 
-$("rs").onclick=()=>{S=mk();$("note").value="";$("sh").value=0;$("smin").value=0;$("cv").style.display="none";
+$("rs").onclick=()=>{S=mk();$("note").value="";$("activities").value="";$("wakeTime").value="";$("sleepTime").value="";$("sh").value=0;$("smin").value=0;updateScreenTime();updateSleepDuration();$("cv").style.display="none";
   $("date").value=new Date().toISOString().slice(0,10);calcDay();render();msg("")};
 init();
 </script>
